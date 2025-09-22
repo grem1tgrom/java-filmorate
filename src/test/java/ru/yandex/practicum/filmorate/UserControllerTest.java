@@ -43,4 +43,17 @@ public class UserControllerTest {
         assertEquals(1, createdUser.getId());
         assertEquals(1, userController.getAllUsers().size());
     }
+
+    @Test
+    public void shouldSetLoginAsNameWhenNameIsMissing() {
+        User user = new User();
+        user.setLogin("login");
+        user.setEmail("test@email.com");
+        user.setBirthday(LocalDate.of(2000, 1, 1));
+        user.setName(null);
+
+        User createdUser = userController.createUser(user);
+
+        assertEquals("login", createdUser.getName());
+    }
 }

@@ -12,7 +12,7 @@ public class Film {
     private int id;
     @NotBlank(message = "Название не может быть пустым.")
     private String name;
-    @Size(max = 200, message = "Описание не должно превышать 200 символов.")
+    @Size(min = 1, max = 200, message = "Описание не должно быть пустым и не должно превышать 200 символов.")
     private String description;
     @NotNull(message = "Дата релиза не может быть пустой.")
     private LocalDate releaseDate;
