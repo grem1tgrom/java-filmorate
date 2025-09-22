@@ -1,0 +1,46 @@
+package ru.yandex.practicum.filmorate;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import ru.yandex.practicum.filmorate.controller.UserController;
+import ru.yandex.practicum.filmorate.model.User;
+import java.time.LocalDate;
+import static org.junit.jupiter.api.Assertions.*;
+
+public class UserControllerTest {
+
+    private UserController userController;
+
+    @BeforeEach
+    public void setUp() {
+        userController = new UserController();
+    }
+
+    @Test
+    public void shouldUseLoginWhenNameIsEmpty() {
+        User user = new User();
+        user.setLogin("myLogin");
+        user.setEmail("test@test.com");
+        user.setBirthday(LocalDate.of(1990, 5, 15));
+        user.setName("");
+
+        User createdUser = userController.createUser(user);
+
+        assertEquals("myLogin", createdUser.getName());
+    }
+
+    @Test
+    public void shouldCreateUserWhenDataIsCorrect() {
+        User user = new User();
+        user.setLogin("correctUser");
+        user.setName("Correct Name");
+        user.setEmail("correct@email.com");
+        user.setBirthday(LocalDate.of(1995, 10, 20));
+
+        User createdUser = userController.createUser(user);
+
+        assertNotNull(createdUser);
+        assertEquals(1, createdUser.getId());
+        assertEquals(1, userController.getAllUsers().size());
+    }
+}
