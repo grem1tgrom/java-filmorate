@@ -14,7 +14,8 @@
 	<name>filmorate</name>
 	<description>filmorate</description>
 	<properties>
-		<java.version>17</java.version> </properties>
+		<java.version>17</java.version>
+	</properties>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -39,6 +40,13 @@
 			<artifactId>spring-boot-devtools</artifactId>
 			<scope>runtime</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>org.zalando</groupId>
+			<artifactId>logbook-spring-boot-starter</artifactId>
+			<version>3.7.2</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>
