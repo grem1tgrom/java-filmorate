@@ -82,7 +82,7 @@ public class FilmServiceTest {
     public void shouldReturnPopularFilmsSortedByLikes() {
         Film film1 = createFilm("Film 1");
         Film film2 = createFilm("Film 2");
-        Film film3 = createFilm("Film 3"); 
+        Film film3 = createFilm("Film 3");
 
         User user1 = createUser("user1");
         User user2 = createUser("user2");
