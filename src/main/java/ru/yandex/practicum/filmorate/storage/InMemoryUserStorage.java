@@ -7,8 +7,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
-@Component
+@Component("inMemoryUserStorage")
 public class InMemoryUserStorage implements UserStorage {
     private final Map<Integer, User> users = new HashMap<>();
     private int nextId = 1;
@@ -41,10 +43,36 @@ public class InMemoryUserStorage implements UserStorage {
     }
 
     @Override
-    public User getUserById(int id) {
-        if (!users.containsKey(id)) {
-            throw new NotFoundException("Пользователь с id=" + id + " не найден.");
+    public Optional<User> getUserById(int id) {
+        return Optional.ofNullable(users.get(id));
+    }
+
+    @Override
+    public void addFriend(int userId, int friendId) {
+        User user = users.get(userId);
+        User friend = users.get(friendId);
+        if (user != null && friend != null) {
+            user.getFriends().add(friendId);
+            friend.getFriends().add(userId);
         }
-        return users.get(id);
+    }
+
+    @Override
+    public void removeFriend(int userId, int friendId) {
+        User user = users.get(userId);
+        User friend = users.get(friendId);
+        if (user != null && friend != null) {
+            user.getFriends().remove(friendId);
+            friend.getFriends().remove(userId);
+        }
+    }
+
+    @Override
+    public Set<Integer> getFriendsIds(int userId) {
+        User user = users.get(userId);
+        if (user == null) {
+            throw new NotFoundException("Пользователь с id=" + userId + " не найден.");
+        }
+        return user.getFriends();
     }
 }

@@ -20,5 +20,10 @@ public class Film {
     private LocalDate releaseDate;
     @Positive(message = "Продолжительность фильма должна быть положительной.")
     private int duration;
+
+    @NotNull(message = "Рейтинг MPA не может быть пустым.")
+    private Mpa mpa;
+    private final Set<Genre> genres = new HashSet<>();
+
     private final Set<Integer> likes = new HashSet<>();
 }

@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
@@ -21,7 +22,8 @@ public class FilmService {
     private static final LocalDate FIRST_FILM_DATE = LocalDate.of(1895, 12, 28);
 
     @Autowired
-    public FilmService(FilmStorage filmStorage, UserStorage userStorage) {
+    public FilmService(@Qualifier("filmDbStorage") FilmStorage filmStorage,
+                       @Qualifier("userDbStorage") UserStorage userStorage) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
     }
@@ -37,28 +39,27 @@ public class FilmService {
 
     public Film updateFilm(Film film) {
         validateFilm(film);
+        getFilmById(film.getId());
         return filmStorage.updateFilm(film);
     }
 
     public Film getFilmById(int id) {
-        return filmStorage.getFilmById(id);
+        return filmStorage.getFilmById(id)
+                .orElseThrow(() -> new NotFoundException("Фильм с id=" + id + " не найден."));
     }
 
     public void addLike(int filmId, int userId) {
-        filmStorage.getFilmById(filmId);
-        userStorage.getUserById(userId);
-        Film film = filmStorage.getFilmById(filmId);
-        film.getLikes().add(userId);
+        getFilmById(filmId);
+        userStorage.getUserById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден."));
+        filmStorage.addLike(filmId, userId);
     }
 
     public void removeLike(int filmId, int userId) {
-        filmStorage.getFilmById(filmId);
-        userStorage.getUserById(userId);
-        Film film = filmStorage.getFilmById(filmId);
-        if (!film.getLikes().contains(userId)) {
-            throw new NotFoundException("Лайк от пользователя с id=" + userId + " не найден.");
-        }
-        film.getLikes().remove(userId);
+        getFilmById(filmId);
+        userStorage.getUserById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден."));
+        filmStorage.removeLike(filmId, userId);
     }
 
     public List<Film> getPopularFilms(int count) {
