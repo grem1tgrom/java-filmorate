@@ -11,9 +11,7 @@ import ru.yandex.practicum.filmorate.storage.UserStorage;
 import java.time.LocalDate;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class UserServiceTest {
 
@@ -38,13 +36,11 @@ public class UserServiceTest {
     public void shouldAddFriend() {
         User user1 = createUser("user1", "user1@mail.com");
         User user2 = createUser("user2", "user2@mail.com");
-
         userService.addFriend(user1.getId(), user2.getId());
-
-        assertEquals(1, userService.getFriends(user1.getId()).size(), "Список друзей user1 должен содержать одного друга.");
-        assertTrue(userService.getFriends(user1.getId()).contains(user2), "В друзьях у user1 должен быть user2.");
-        assertEquals(1, userService.getFriends(user2.getId()).size(), "Список друзей user2 должен содержать одного друга.");
-        assertTrue(userService.getFriends(user2.getId()).contains(user1), "В друзьях у user2 должен быть user1.");
+        assertEquals(1, userService.getFriends(user1.getId()).size());
+        assertTrue(userService.getFriends(user1.getId()).contains(user2));
+        assertEquals(1, userService.getFriends(user2.getId()).size());
+        assertTrue(userService.getFriends(user2.getId()).contains(user1));
     }
 
     @Test
@@ -52,11 +48,9 @@ public class UserServiceTest {
         User user1 = createUser("user1", "user1@mail.com");
         User user2 = createUser("user2", "user2@mail.com");
         userService.addFriend(user1.getId(), user2.getId());
-
         userService.removeFriend(user1.getId(), user2.getId());
-
-        assertTrue(userService.getFriends(user1.getId()).isEmpty(), "Список друзей user1 должен быть пуст.");
-        assertTrue(userService.getFriends(user2.getId()).isEmpty(), "Список друзей user2 должен быть пуст.");
+        assertTrue(userService.getFriends(user1.getId()).isEmpty());
+        assertTrue(userService.getFriends(user2.getId()).isEmpty());
     }
 
     @Test
@@ -64,14 +58,11 @@ public class UserServiceTest {
         User user1 = createUser("user1", "user1@mail.com");
         User user2 = createUser("user2", "user2@mail.com");
         User commonFriend = createUser("common", "common@mail.com");
-
         userService.addFriend(user1.getId(), commonFriend.getId());
         userService.addFriend(user2.getId(), commonFriend.getId());
-
         List<User> commonFriends = userService.getCommonFriends(user1.getId(), user2.getId());
-
-        assertEquals(1, commonFriends.size(), "Должен быть один общий друг.");
-        assertTrue(commonFriends.contains(commonFriend), "Общим другом должен быть 'commonFriend'.");
+        assertEquals(1, commonFriends.size());
+        assertTrue(commonFriends.contains(commonFriend));
     }
 
     @Test
@@ -80,13 +71,10 @@ public class UserServiceTest {
         User user2 = createUser("user2", "user2@mail.com");
         User friend1 = createUser("friend1", "friend1@mail.com");
         User friend2 = createUser("friend2", "friend2@mail.com");
-
         userService.addFriend(user1.getId(), friend1.getId());
         userService.addFriend(user2.getId(), friend2.getId());
-
         List<User> commonFriends = userService.getCommonFriends(user1.getId(), user2.getId());
-
-        assertTrue(commonFriends.isEmpty(), "Список общих друзей должен быть пуст.");
+        assertTrue(commonFriends.isEmpty());
     }
 
     @Test

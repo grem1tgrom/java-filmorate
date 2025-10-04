@@ -13,9 +13,7 @@ import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.time.LocalDate;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class FilmControllerTest {
 
@@ -40,9 +38,7 @@ public class FilmControllerTest {
         film.setDuration(120);
         film.setReleaseDate(LocalDate.of(1800, 1, 1));
 
-        assertThrows(ValidationException.class, () -> {
-            filmController.addFilm(film);
-        });
+        assertThrows(ValidationException.class, () -> filmController.addFilm(film));
     }
 
     @Test

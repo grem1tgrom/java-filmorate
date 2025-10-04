@@ -14,9 +14,7 @@ import ru.yandex.practicum.filmorate.storage.UserStorage;
 import java.time.LocalDate;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class FilmServiceTest {
 
@@ -55,8 +53,8 @@ public class FilmServiceTest {
 
         filmService.addLike(film.getId(), user.getId());
 
-        assertEquals(1, film.getLikes().size(), "У фильма должен быть один лайк.");
-        assertTrue(film.getLikes().contains(user.getId()), "Фильм должен содержать лайк от user1.");
+        assertEquals(1, film.getLikes().size());
+        assertTrue(film.getLikes().contains(user.getId()));
     }
 
     @Test
@@ -67,7 +65,7 @@ public class FilmServiceTest {
 
         filmService.removeLike(film.getId(), user.getId());
 
-        assertTrue(film.getLikes().isEmpty(), "У фильма не должно быть лайков.");
+        assertTrue(film.getLikes().isEmpty());
     }
 
     @Test
@@ -75,7 +73,7 @@ public class FilmServiceTest {
         Film film = createFilm("Film 1");
         User user = createUser("user1");
 
-        assertThrows(NotFoundException.class, () -> filmService.removeLike(film.getId(), user.getId()), "Должно быть выброшено исключение NotFoundException.");
+        assertThrows(NotFoundException.class, () -> filmService.removeLike(film.getId(), user.getId()));
     }
 
     @Test
@@ -93,9 +91,9 @@ public class FilmServiceTest {
 
         List<Film> popularFilms = filmService.getPopularFilms(3);
 
-        assertEquals(3, popularFilms.size(), "Список должен содержать 3 фильма.");
-        assertEquals(film2, popularFilms.get(0), "Самым популярным должен быть film2.");
-        assertEquals(film1, popularFilms.get(1), "Вторым по популярности должен быть film1.");
-        assertEquals(film3, popularFilms.get(2), "Третьим должен быть film3.");
+        assertEquals(3, popularFilms.size());
+        assertEquals(film2, popularFilms.get(0));
+        assertEquals(film1, popularFilms.get(1));
+        assertEquals(film3, popularFilms.get(2));
     }
 }
