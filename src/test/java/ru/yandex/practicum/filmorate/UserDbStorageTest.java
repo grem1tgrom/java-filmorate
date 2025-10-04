@@ -6,15 +6,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Import;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @JdbcTest
 @AutoConfigureTestDatabase
@@ -37,7 +36,9 @@ class UserDbStorageTest {
     public void testCreateAndFindUserById() {
         User newUser = createNewUser("testUser");
 
-        User foundUser = userStorage.getUserById(newUser.getId());
+        Optional<User> foundUserOptional = userStorage.getUserById(newUser.getId());
+        assertThat(foundUserOptional).isPresent();
+        User foundUser = foundUserOptional.get();
 
         assertThat(foundUser).isNotNull()
                 .hasFieldOrPropertyWithValue("id", newUser.getId())
@@ -52,7 +53,9 @@ class UserDbStorageTest {
         user.setEmail("updated@mail.com");
         userStorage.updateUser(user);
 
-        User foundUser = userStorage.getUserById(user.getId());
+        Optional<User> foundUserOptional = userStorage.getUserById(user.getId());
+        assertThat(foundUserOptional).isPresent();
+        User foundUser = foundUserOptional.get();
 
         assertThat(foundUser)
                 .hasFieldOrPropertyWithValue("name", "Updated Name")
@@ -93,10 +96,5 @@ class UserDbStorageTest {
         Set<Integer> user1Friends = userStorage.getFriendsIds(user1.getId());
 
         assertThat(user1Friends).isEmpty();
-    }
-
-    @Test
-    public void testGetUserByIdNotFound() {
-        assertThrows(NotFoundException.class, () -> userStorage.getUserById(9999));
     }
 }

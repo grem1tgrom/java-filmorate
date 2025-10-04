@@ -40,9 +40,9 @@ public class GenreDbStorage implements GenreStorage {
 
     @Override
     public List<Genre> getFilmGenres(int filmId) {
-        String sql = "SELECT g.id, g.name FROM genres AS g " +
-                "JOIN film_genres AS fg ON g.id = fg.genre_id " +
-                "WHERE fg.film_id = ? ORDER BY g.id";
+        String sql = "SELECT g.id, g.name FROM genres AS g "
+                + "JOIN film_genres AS fg ON g.id = fg.genre_id "
+                + "WHERE fg.film_id = ? ORDER BY g.id";
         return jdbcTemplate.query(sql, this::mapRowToGenre, filmId);
     }
 

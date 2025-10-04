@@ -14,6 +14,7 @@ import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -54,7 +55,9 @@ class FilmDbStorageTest {
     public void testCreateAndFindFilmById() {
         Film newFilm = createNewFilm("TestFilm", 3);
 
-        Film foundFilm = filmStorage.getFilmById(newFilm.getId());
+        Optional<Film> filmOptional = filmStorage.getFilmById(newFilm.getId());
+        assertThat(filmOptional).isPresent();
+        Film foundFilm = filmOptional.get();
 
         assertThat(foundFilm).isNotNull()
                 .hasFieldOrPropertyWithValue("name", "TestFilm")
@@ -91,11 +94,17 @@ class FilmDbStorageTest {
         User user = createNewUser("liker");
 
         filmStorage.addLike(film.getId(), user.getId());
-        Film filmAfterLike = filmStorage.getFilmById(film.getId());
+
+        Optional<Film> filmAfterLikeOptional = filmStorage.getFilmById(film.getId());
+        assertThat(filmAfterLikeOptional).isPresent();
+        Film filmAfterLike = filmAfterLikeOptional.get();
         assertThat(filmAfterLike.getLikes()).containsExactly(user.getId());
 
         filmStorage.removeLike(film.getId(), user.getId());
-        Film filmAfterUnlike = filmStorage.getFilmById(film.getId());
+
+        Optional<Film> filmAfterUnlikeOptional = filmStorage.getFilmById(film.getId());
+        assertThat(filmAfterUnlikeOptional).isPresent();
+        Film filmAfterUnlike = filmAfterUnlikeOptional.get();
         assertThat(filmAfterUnlike.getLikes()).isEmpty();
 
         assertThrows(NotFoundException.class, () -> filmStorage.removeLike(film.getId(), user.getId()));

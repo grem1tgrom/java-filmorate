@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
 import ru.yandex.practicum.filmorate.storage.InMemoryUserStorage;
@@ -10,7 +11,9 @@ import ru.yandex.practicum.filmorate.storage.UserStorage;
 import java.time.LocalDate;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class UserServiceTest {
 
@@ -84,5 +87,12 @@ public class UserServiceTest {
         List<User> commonFriends = userService.getCommonFriends(user1.getId(), user2.getId());
 
         assertTrue(commonFriends.isEmpty(), "Список общих друзей должен быть пуст.");
+    }
+
+    @Test
+    public void shouldThrowExceptionWhenAddFriendWithNonExistentUser() {
+        User user1 = createUser("user1", "user1@mail.com");
+        assertThrows(NotFoundException.class, () -> userService.addFriend(user1.getId(), 9999));
+        assertThrows(NotFoundException.class, () -> userService.addFriend(9999, user1.getId()));
     }
 }

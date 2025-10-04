@@ -14,7 +14,9 @@ import ru.yandex.practicum.filmorate.storage.UserStorage;
 import java.time.LocalDate;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FilmServiceTest {
 
@@ -73,9 +75,7 @@ public class FilmServiceTest {
         Film film = createFilm("Film 1");
         User user = createUser("user1");
 
-        assertThrows(NotFoundException.class, () -> {
-            filmService.removeLike(film.getId(), user.getId());
-        }, "Должно быть выброшено исключение NotFoundException.");
+        assertThrows(NotFoundException.class, () -> filmService.removeLike(film.getId(), user.getId()), "Должно быть выброшено исключение NotFoundException.");
     }
 
     @Test
