@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Mpa;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -37,7 +38,8 @@ public class FilmDbStorage implements FilmStorage {
         film.setDuration(resultSet.getInt("duration"));
 
         int mpaId = resultSet.getInt("mpa_rating_id");
-        mpaStorage.getMpaRatingById(mpaId).ifPresent(film::setMpa);
+        Optional<Mpa> mpa = mpaStorage.getMpaRatingById(mpaId);
+        mpa.ifPresent(film::setMpa);
 
         String sqlLikes = "SELECT user_id FROM likes WHERE film_id = ?";
         List<Integer> likes = jdbcTemplate.query(sqlLikes, (rs, rowN) -> rs.getInt("user_id"), film.getId());
@@ -57,7 +59,8 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public Film addFilm(Film film) {
         String sqlMpaCheck = "SELECT COUNT(*) FROM mpa_ratings WHERE id = ?";
-        if (jdbcTemplate.queryForObject(sqlMpaCheck, Integer.class, film.getMpa().getId()) == 0) {
+        Integer count = jdbcTemplate.queryForObject(sqlMpaCheck, Integer.class, film.getMpa().getId());
+        if (count == null || count == 0) {
             throw new NotFoundException("MPA рейтинг с id=" + film.getMpa().getId() + " не найден.");
         }
 
@@ -84,7 +87,8 @@ public class FilmDbStorage implements FilmStorage {
                 .orElseThrow(() -> new NotFoundException("Фильм с id=" + film.getId() + " не найден."));
 
         String sqlMpaCheck = "SELECT COUNT(*) FROM mpa_ratings WHERE id = ?";
-        if (jdbcTemplate.queryForObject(sqlMpaCheck, Integer.class, film.getMpa().getId()) == 0) {
+        Integer count = jdbcTemplate.queryForObject(sqlMpaCheck, Integer.class, film.getMpa().getId());
+        if (count == null || count == 0) {
             throw new NotFoundException("MPA рейтинг с id=" + film.getMpa().getId() + " не найден.");
         }
 
