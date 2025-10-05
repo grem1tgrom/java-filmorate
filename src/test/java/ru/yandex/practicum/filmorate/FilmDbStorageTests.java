@@ -5,6 +5,7 @@ import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.DirtiesContext; 
 import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.MPA;
@@ -22,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @AutoConfigureTestDatabase
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 public class FilmDbStorageTests {
     private final FilmDbStorage filmStorage;
     private final UserDbStorage userStorage;
@@ -67,6 +69,16 @@ public class FilmDbStorageTests {
     @Test
     @Order(4)
     public void correctFilmUpdating() {
+        Film initialFilm = Film.builder()
+                .name("firstFilmName")
+                .description("description for FIRST film")
+                .releaseDate(LocalDate.of(2000, 7, 18))
+                .duration(110)
+                .mpa(MPA.builder().id(1).name("G").build())
+                .genres(new ArrayList<>())
+                .build();
+        filmStorage.addFilm(initialFilm);
+
         Film film = Film.builder()
                 .id(1)
                 .name("UpdatedFilmName")
@@ -103,7 +115,7 @@ public class FilmDbStorageTests {
                 .build();
         filmStorage.addFilm(secondFilm);
         filmStorage.addFilm(thirdFilm);
-        assertEquals(3, filmStorage.getAllFilms().size());
+        assertEquals(2, filmStorage.getAllFilms().size());
     }
 
     @Test
@@ -116,14 +128,26 @@ public class FilmDbStorageTests {
     @Test
     @Order(7)
     public void correctGettingFilmByID() {
-        Film film = filmStorage.getFilmByID(2);
-        assertEquals("SecondFilm", film.getName());
-        assertEquals("SecondFilmDescription", film.getDescription());
+        Film film = Film.builder()
+                .name("SecondFilm")
+                .description("SecondFilmDescription")
+                .releaseDate(LocalDate.of(2020, 4, 25))
+                .duration(90)
+                .mpa(MPA.builder().id(1).name("G").build())
+                .genres(new ArrayList<>())
+                .build();
+        filmStorage.addFilm(film);
+        Film foundFilm = filmStorage.getFilmByID(1);
+        assertEquals("SecondFilm", foundFilm.getName());
+        assertEquals("SecondFilmDescription", foundFilm.getDescription());
     }
 
     @Test
     @Order(8)
     public void getTopWhenDontHaveLikes() {
+        filmStorage.addFilm(Film.builder().name("f1").description("d1").releaseDate(LocalDate.now()).duration(100).mpa(MPA.builder().id(1).build()).build());
+        filmStorage.addFilm(Film.builder().name("f2").description("d2").releaseDate(LocalDate.now()).duration(100).mpa(MPA.builder().id(1).build()).build());
+        filmStorage.addFilm(Film.builder().name("f3").description("d3").releaseDate(LocalDate.now()).duration(100).mpa(MPA.builder().id(1).build()).build());
         List<Film> top = filmStorage.findTopLikedFilms(10);
         assertEquals(3, top.size());
     }
@@ -138,43 +162,63 @@ public class FilmDbStorageTests {
     @Test
     @Order(10)
     public void correctLikeAdding() {
-        User user = User.builder()
-                .email("222@222.ru")
-                .login("testLogin")
-                .name("TestingName")
-                .birthday(LocalDate.of(2002, 2, 23))
-                .build();
+        User user = User.builder().email("222@222.ru").login("testLogin").name("TestingName").birthday(LocalDate.of(2002, 2, 23)).build();
         userStorage.addUser(user);
-        boolean added = filmStorage.addLike(3, 1);
+        Film film = Film.builder().name("f").description("d").releaseDate(LocalDate.now()).duration(100).mpa(MPA.builder().id(1).build()).build();
+        filmStorage.addFilm(film);
+
+        boolean added = filmStorage.addLike(1, 1);
         assertTrue(added);
     }
 
     @Test
     @Order(11)
     public void getFalseIfAddSameLike() {
-        boolean added = filmStorage.addLike(3, 1);
+        User user = User.builder().email("222@222.ru").login("testLogin").name("TestingName").birthday(LocalDate.of(2002, 2, 23)).build();
+        userStorage.addUser(user);
+        Film film = Film.builder().name("f").description("d").releaseDate(LocalDate.now()).duration(100).mpa(MPA.builder().id(1).build()).build();
+        filmStorage.addFilm(film);
+        filmStorage.addLike(1, 1);
+        boolean added = filmStorage.addLike(1, 1);
         assertFalse(added);
     }
 
     @Test
     @Order(12)
     public void getCorrectTopFilmsAfterLikes() {
+        User user1 = User.builder().email("1@1.ru").login("u1").birthday(LocalDate.now()).build();
+        userStorage.addUser(user1);
+        Film film1 = Film.builder().name("f1").description("d1").releaseDate(LocalDate.now()).duration(100).mpa(MPA.builder().id(1).build()).build();
+        filmStorage.addFilm(film1);
+        Film film2 = Film.builder().name("f2").description("d2").releaseDate(LocalDate.now()).duration(100).mpa(MPA.builder().id(1).build()).build();
+        filmStorage.addFilm(film2);
+        filmStorage.addLike(2, 1);
+
         List<Film> top = filmStorage.findTopLikedFilms(10);
-        assertEquals(3, top.size());
-        assertEquals("ThirdFilm", top.get(0).getName());
+        assertEquals(2, top.size());
+        assertEquals("f2", top.get(0).getName());
     }
 
     @Test
     @Order(13)
     public void correctDeletingLike() {
-        boolean deleted = filmStorage.removeLike(3, 1);
+        User user = User.builder().email("u@u.com").login("u").birthday(LocalDate.now()).build();
+        userStorage.addUser(user);
+        Film film = Film.builder().name("f").description("d").releaseDate(LocalDate.now()).duration(100).mpa(MPA.builder().id(1).build()).build();
+        filmStorage.addFilm(film);
+        filmStorage.addLike(1, 1);
+        boolean deleted = filmStorage.removeLike(1, 1);
         assertTrue(deleted);
     }
 
     @Test
     @Order(14)
     public void getFalseWhenTryDeleteAlreadyDeletedLike() {
-        boolean deleted = filmStorage.removeLike(3, 1);
+        User user = User.builder().email("u@u.com").login("u").birthday(LocalDate.now()).build();
+        userStorage.addUser(user);
+        Film film = Film.builder().name("f").description("d").releaseDate(LocalDate.now()).duration(100).mpa(MPA.builder().id(1).build()).build();
+        filmStorage.addFilm(film);
+        boolean deleted = filmStorage.removeLike(1, 1);
         assertFalse(deleted);
     }
 
@@ -188,9 +232,15 @@ public class FilmDbStorageTests {
     @Test
     @Order(16)
     public void getCorrectTopFilmsAfterRemovingLikes() {
+        User user1 = User.builder().email("1@1.ru").login("u1").birthday(LocalDate.now()).build();
+        userStorage.addUser(user1);
+        Film film1 = Film.builder().name("f1").description("d1").releaseDate(LocalDate.now()).duration(100).mpa(MPA.builder().id(1).build()).build();
+        filmStorage.addFilm(film1);
+        filmStorage.addLike(1, 1);
+        filmStorage.removeLike(1, 1);
+
         List<Film> top = filmStorage.findTopLikedFilms(10);
-        assertEquals(3, top.size());
-        assertEquals("UpdatedFilmName", top.get(0).getName());
+        assertEquals(1, top.size());
     }
 
     @Test
@@ -202,6 +252,8 @@ public class FilmDbStorageTests {
     @Test
     @Order(18)
     public void getTrueWhenIdIsPresentInBase() {
-        assertTrue(filmStorage.idIsPresent(2));
+        Film film = Film.builder().name("f").description("d").releaseDate(LocalDate.now()).duration(100).mpa(MPA.builder().id(1).build()).build();
+        filmStorage.addFilm(film);
+        assertTrue(filmStorage.idIsPresent(1));
     }
 }
