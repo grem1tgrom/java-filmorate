@@ -77,8 +77,17 @@ public class FilmDbStorage implements FilmStorage {
         )).intValue();
         film.setId(id);
 
-        genreStorage.updateFilmGenres(film.getId(), new ArrayList<>(film.getGenres()));
-        return getFilmById(film.getId()).orElse(null);
+        if (film.getGenres() != null && !film.getGenres().isEmpty()) {
+            genreStorage.updateFilmGenres(film.getId(), new ArrayList<>(film.getGenres()));
+            film.getGenres().clear();
+            film.getGenres().addAll(genreStorage.getFilmGenres(film.getId()));
+        }
+
+        film.setMpa(mpaStorage.getMpaRatingById(film.getMpa().getId())
+                .orElseThrow(() -> new NotFoundException("MPA рейтинг не найден после создания фильма.")));
+
+
+        return film;
     }
 
     @Override
@@ -102,7 +111,13 @@ public class FilmDbStorage implements FilmStorage {
                 film.getId());
 
         genreStorage.updateFilmGenres(film.getId(), new ArrayList<>(film.getGenres()));
-        return getFilmById(film.getId()).orElse(null);
+        film.getGenres().clear();
+        film.getGenres().addAll(genreStorage.getFilmGenres(film.getId()));
+        film.setMpa(mpaStorage.getMpaRatingById(film.getMpa().getId())
+                .orElseThrow(() -> new NotFoundException("MPA рейтинг не найден после обновления фильма.")));
+
+
+        return film;
     }
 
     @Override

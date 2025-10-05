@@ -80,7 +80,7 @@ public class UserDbStorage implements UserStorage {
                 user.getBirthday(),
                 user.getId());
 
-        return getUserById(user.getId()).orElse(null);
+        return user;
     }
 
     @Override
@@ -92,16 +92,16 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public void addFriend(int userId, int friendId) {
-        String sql = "MERGE INTO friendships (user_id, friend_id) KEY(user_id, friend_id) VALUES (?, ?)";
+        String sql = "INSERT INTO friendships (user_id, friend_id) VALUES (?, ?)";
         jdbcTemplate.update(sql, userId, friendId);
+        jdbcTemplate.update(sql, friendId, userId);
     }
 
     @Override
     public void removeFriend(int userId, int friendId) {
         String sql = "DELETE FROM friendships WHERE user_id = ? AND friend_id = ?";
-        if (jdbcTemplate.update(sql, userId, friendId) == 0) {
-            throw new NotFoundException(String.format("Пользователь id=%d не имеет друга id=%d.", userId, friendId));
-        }
+        jdbcTemplate.update(sql, userId, friendId);
+        jdbcTemplate.update(sql, friendId, userId);
     }
 
     @Override
