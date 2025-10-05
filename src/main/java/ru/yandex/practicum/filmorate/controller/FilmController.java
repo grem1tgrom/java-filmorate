@@ -1,12 +1,12 @@
-package ru.yandex.practicum.filmorate.controller;
+package ru.yandex.practicum.filmorate.controllers;
 
-import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
+import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -16,49 +16,49 @@ public class FilmController {
     private final FilmService filmService;
 
     @Autowired
-    public FilmController(FilmService filmService) {
-        this.filmService = filmService;
+    public FilmController(FilmService service) {
+        this.filmService = service;
     }
 
     @GetMapping
-    public List<Film> getAllFilms() {
-        log.info("Получен запрос на получение списка всех фильмов.");
+    public List<Film> getFilms() {
+        log.info("Получен GET запрос на :PORT/films");
         return filmService.getAllFilms();
     }
 
     @PostMapping
-    public Film addFilm(@Valid @RequestBody Film film) {
-        log.info("Получен POST-запрос на добавление фильма: {}", film);
+    public Film create(@Valid @RequestBody final Film film) {
+        log.info("Получен POST запрос на :PORT/films");
         return filmService.addFilm(film);
     }
 
     @PutMapping
-    public Film updateFilm(@Valid @RequestBody Film film) {
-        log.info("Получен PUT-запрос на обновление фильма: {}", film);
+    public Film update(@Valid @RequestBody final Film film) {
+        log.info("Получен PUT запрос на :PORT/films");
         return filmService.updateFilm(film);
     }
 
-    @GetMapping("/{id}")
-    public Film getFilmById(@PathVariable int id) {
-        log.info("Получен GET-запрос на получение фильма по id={}", id);
-        return filmService.getFilmById(id);
+    @GetMapping("{id}")
+    public Film findFilmByID(@PathVariable Integer id) {
+        log.info("Получен GET запрос на :PORT/films/{id}");
+        return filmService.findFilmByID(id);
     }
 
-    @PutMapping("/{id}/like/{userId}")
-    public void addLike(@PathVariable int id, @PathVariable int userId) {
-        log.info("Получен PUT-запрос на добавление лайка фильму id={} от пользователя id={}", id, userId);
-        filmService.addLike(id, userId);
+    @PutMapping("/{filmID}/like/{userID}")
+    public String addLike(@PathVariable Integer filmID, @PathVariable Integer userID) {
+        log.info("Получен PUT запрос на :PORT/films/{film_id}/like/{user_id}");
+        return filmService.addLike(filmID, userID);
     }
 
-    @DeleteMapping("/{id}/like/{userId}")
-    public void removeLike(@PathVariable int id, @PathVariable int userId) {
-        log.info("Получен DELETE-запрос на удаление лайка у фильма id={} от пользователя id={}", id, userId);
-        filmService.removeLike(id, userId);
+    @DeleteMapping("/{filmID}/like/{userID}")
+    public String removeLike(@PathVariable Integer filmID, @PathVariable Integer userID) {
+        log.info("Получен DELETE запрос на :PORT/films/{film_id}/like/{user_id}");
+        return filmService.removeLike(filmID, userID);
     }
 
     @GetMapping("/popular")
-    public List<Film> getPopularFilms(@RequestParam(defaultValue = "10") int count) {
-        log.info("Получен GET-запрос на получение {} самых популярных фильмов.", count);
-        return filmService.getPopularFilms(count);
+    public List<Film> findTopLikedFilms(@RequestParam(defaultValue = "10") Integer count) {
+        log.info("Получен GET запрос на :PORT/films/popular?i=num");
+        return filmService.findTopLikedFilms(count);
     }
 }

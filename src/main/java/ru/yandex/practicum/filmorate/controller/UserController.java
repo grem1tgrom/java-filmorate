@@ -1,12 +1,12 @@
-package ru.yandex.practicum.filmorate.controller;
+package ru.yandex.practicum.filmorate.controllers;
 
-import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
 
+import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -21,50 +21,50 @@ public class UserController {
     }
 
     @GetMapping
-    public List<User> getAllUsers() {
-        log.info("Получен GET-запрос на получение списка всех пользователей.");
+    public List<User> getUsers() {
+        log.info("Получен GET запрос на :PORT/users");
         return userService.getAllUsers();
     }
 
     @PostMapping
-    public User createUser(@Valid @RequestBody User user) {
-        log.info("Получен POST-запрос на создание пользователя: {}", user);
-        return userService.createUser(user);
+    public User create(@Valid @RequestBody final User user) {
+        log.info("Получен POST запрос на :PORT/users");
+        return userService.addUser(user);
     }
 
     @PutMapping
-    public User updateUser(@Valid @RequestBody User user) {
-        log.info("Получен PUT-запрос на обновление пользователя: {}", user);
+    public User update(@Valid @RequestBody final User user) {
+        log.info("Получен PUT запрос на :PORT/users");
         return userService.updateUser(user);
     }
 
     @GetMapping("/{id}")
-    public User getUserById(@PathVariable int id) {
-        log.info("Получен GET-запрос на получение пользователя по id={}", id);
-        return userService.getUserById(id);
+    public User getUserByID(@PathVariable int id) {
+        log.info("Получен GET запрос на :PORT/users/{id}");
+        return userService.getUserByID(id);
     }
 
-    @PutMapping("/{id}/friends/{friendId}")
-    public void addFriend(@PathVariable int id, @PathVariable int friendId) {
-        log.info("Получен PUT-запрос на добавление в друзья от id={} к id={}", id, friendId);
-        userService.addFriend(id, friendId);
+    @PutMapping("/{userID}/friends/{friendID}")
+    public String addFriendship(@PathVariable int userID, @PathVariable int friendID) {
+        log.info("Получен PUT запрос на :PORT/{id}/friends/{another_id}");
+        return userService.addFriendship(userID, friendID);
     }
 
-    @DeleteMapping("/{id}/friends/{friendId}")
-    public void removeFriend(@PathVariable int id, @PathVariable int friendId) {
-        log.info("Получен DELETE-запрос на удаление из друзей от id={} к id={}", id, friendId);
-        userService.removeFriend(id, friendId);
+    @DeleteMapping("/{userID}/friends/{friendID}")
+    public String removeFriendship(@PathVariable int userID, @PathVariable int friendID) {
+        log.info("Получен DELETE запрос на :PORT/{id}/friends/{another_id}");
+        return userService.removeFriendship(userID, friendID);
     }
 
-    @GetMapping("/{id}/friends")
-    public List<User> getFriends(@PathVariable int id) {
-        log.info("Получен GET-запрос на получение списка друзей пользователя id={}", id);
-        return userService.getFriends(id);
+    @GetMapping("/{userID}/friends")
+    public List<User> getFriendsOfUser(@PathVariable int userID) {
+        log.info("Получен GET запрос на :PORT/{id}/friends}");
+        return userService.getFriendsOfUser(userID);
     }
 
-    @GetMapping("/{id}/friends/common/{otherId}")
-    public List<User> getCommonFriends(@PathVariable int id, @PathVariable int otherId) {
-        log.info("Получен GET-запрос на получение списка общих друзей у id={} и id={}", id, otherId);
-        return userService.getCommonFriends(id, otherId);
+    @GetMapping("/{userID}/friends/common/{anotherID}")
+    public List<User> getFriendsCrossing(@PathVariable int userID, @PathVariable int anotherID) {
+        log.info("Получен GET запрос на :PORT/{id}/friends/common/{another_id}");
+        return userService.getFriendsCrossing(userID, anotherID);
     }
 }

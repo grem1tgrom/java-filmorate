@@ -2,14 +2,18 @@ package ru.yandex.practicum.filmorate;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
+import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
+import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.MPA;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.FilmService;
-import ru.yandex.practicum.filmorate.storage.FilmStorage;
-import ru.yandex.practicum.filmorate.storage.InMemoryFilmStorage;
-import ru.yandex.practicum.filmorate.storage.InMemoryUserStorage;
-import ru.yandex.practicum.filmorate.storage.UserStorage;
+import ru.yandex.practicum.filmorate.service.UserService;
+import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.film.InMemoryFilmStorage;
+import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
+import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -21,20 +25,24 @@ public class FilmServiceTest {
     private FilmService filmService;
     private FilmStorage filmStorage;
     private UserStorage userStorage;
+    private UserService userService;
 
     @BeforeEach
     public void setUp() {
         filmStorage = new InMemoryFilmStorage();
         userStorage = new InMemoryUserStorage();
-        filmService = new FilmService(filmStorage, userStorage);
+        this.userService = new UserService(userStorage);
+        filmService = new FilmService(filmStorage, this.userService);
     }
 
     private Film createFilm(String name) {
-        Film film = new Film();
-        film.setName(name);
-        film.setDescription("description");
-        film.setReleaseDate(LocalDate.of(2000, 1, 1));
-        film.setDuration(120);
+        Film film = Film.builder()
+                .name(name)
+                .description("description")
+                .releaseDate(LocalDate.of(2000, 1, 1))
+                .duration(120)
+                .mpa(new MPA(1, "G"))
+                .build();
         return filmStorage.addFilm(film);
     }
 
@@ -43,7 +51,7 @@ public class FilmServiceTest {
         user.setLogin(login);
         user.setEmail(login + "@mail.com");
         user.setBirthday(LocalDate.of(1990, 1, 1));
-        return userStorage.createUser(user);
+        return userService.addUser(user);
     }
 
     @Test
@@ -53,8 +61,8 @@ public class FilmServiceTest {
 
         filmService.addLike(film.getId(), user.getId());
 
-        assertEquals(1, film.getLikes().size(), "У фильма должен быть один лайк.");
-        assertTrue(film.getLikes().contains(user.getId()), "Фильм должен содержать лайк от user1.");
+        assertEquals(1, film.getLikes().size());
+        assertTrue(film.getLikes().contains(user.getId()));
     }
 
     @Test
@@ -65,17 +73,41 @@ public class FilmServiceTest {
 
         filmService.removeLike(film.getId(), user.getId());
 
-        assertTrue(film.getLikes().isEmpty(), "У фильма не должно быть лайков.");
+        assertTrue(film.getLikes().isEmpty());
     }
 
     @Test
-    public void shouldThrowExceptionWhenRemovingNonExistentLike() {
-        Film film = createFilm("Film 1");
-        User user = createUser("user1");
+    public void shouldThrowValidationExceptionWhenFindTopFilmsCountIsZero() {
+        assertThrows(ValidationException.class, () -> {
+            filmService.findTopLikedFilms(0);
+        });
+    }
 
-        assertThrows(NotFoundException.class, () -> {
-            filmService.removeLike(film.getId(), user.getId());
-        }, "Должно быть выброшено исключение NotFoundException.");
+    @Test
+    public void shouldThrowValidationExceptionWhenFindTopFilmsCountIsNegative() {
+        assertThrows(ValidationException.class, () -> {
+            filmService.findTopLikedFilms(-1);
+        });
+    }
+
+    @Test
+    public void shouldThrowUserNotFoundExceptionWhenAddingLikeWithInvalidUser() {
+        Film film = createFilm("Film 1");
+        Integer invalidUserId = 9999;
+
+        assertThrows(UserNotFoundException.class, () -> {
+            filmService.addLike(film.getId(), invalidUserId);
+        });
+    }
+
+    @Test
+    public void shouldThrowFilmNotFoundExceptionWhenAddingLikeWithInvalidFilm() {
+        User user = createUser("validUser");
+        Integer invalidFilmId = 9999;
+
+        assertThrows(FilmNotFoundException.class, () -> {
+            filmService.addLike(invalidFilmId, user.getId());
+        });
     }
 
     @Test
@@ -91,11 +123,11 @@ public class FilmServiceTest {
         filmService.addLike(film2.getId(), user1.getId());
         filmService.addLike(film2.getId(), user2.getId());
 
-        List<Film> popularFilms = filmService.getPopularFilms(3);
+        List<Film> popularFilms = filmService.findTopLikedFilms(3);
 
-        assertEquals(3, popularFilms.size(), "Список должен содержать 3 фильма.");
-        assertEquals(film2, popularFilms.get(0), "Самым популярным должен быть film2.");
-        assertEquals(film1, popularFilms.get(1), "Вторым по популярности должен быть film1.");
-        assertEquals(film3, popularFilms.get(2), "Третьим должен быть film3.");
+        assertEquals(3, popularFilms.size());
+        assertEquals(film2, popularFilms.get(0));
+        assertEquals(film1, popularFilms.get(1));
+        assertEquals(film3, popularFilms.get(2));
     }
 }
