@@ -3,12 +3,14 @@ package ru.yandex.practicum.filmorate.storage;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
-@Component
+@Component("inMemoryFilmStorage")
 public class InMemoryFilmStorage implements FilmStorage {
     private final Map<Integer, Film> films = new HashMap<>();
     private int nextId = 1;
@@ -35,10 +37,29 @@ public class InMemoryFilmStorage implements FilmStorage {
     }
 
     @Override
-    public Film getFilmById(int id) {
-        if (!films.containsKey(id)) {
-            throw new NotFoundException("Фильм с id=" + id + " не найден.");
+    public Optional<Film> getFilmById(int id) {
+        return Optional.ofNullable(films.get(id));
+    }
+
+    @Override
+    public void addLike(int filmId, int userId) {
+        Film film = films.get(filmId);
+        if (film != null) {
+            film.getLikes().add(userId);
+        } else {
+            throw new NotFoundException("Фильм с id=" + filmId + " не найден.");
         }
-        return films.get(id);
+    }
+
+    @Override
+    public void removeLike(int filmId, int userId) {
+        Film film = films.get(filmId);
+        if (film != null) {
+            if (!film.getLikes().remove(userId)) {
+                throw new NotFoundException("Лайк от пользователя с id=" + userId + " не найден.");
+            }
+        } else {
+            throw new NotFoundException("Фильм с id=" + filmId + " не найден.");
+        }
     }
 }
