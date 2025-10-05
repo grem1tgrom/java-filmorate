@@ -74,7 +74,7 @@ class UserDbStorageTest {
     }
 
     @Test
-    public void testAddAndGetFriendsUnilateral() {
+    public void testAddAndGetFriends() {
         User user1 = createNewUser("friendTest1");
         User user2 = createNewUser("friendTest2");
 
@@ -84,7 +84,7 @@ class UserDbStorageTest {
         Set<Integer> user2Friends = userStorage.getFriendsIds(user2.getId());
 
         assertThat(user1Friends).containsExactly(user2.getId());
-        assertThat(user2Friends).isEmpty();
+        assertThat(user2Friends).containsExactly(user1.getId());
     }
 
     @Test
@@ -95,7 +95,9 @@ class UserDbStorageTest {
 
         userStorage.removeFriend(user1.getId(), user2.getId());
         Set<Integer> user1Friends = userStorage.getFriendsIds(user1.getId());
+        Set<Integer> user2Friends = userStorage.getFriendsIds(user2.getId());
 
         assertThat(user1Friends).isEmpty();
+        assertThat(user2Friends).isEmpty();
     }
 }
