@@ -4,7 +4,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 import ru.yandex.practicum.filmorate.validators.UserValidator;
@@ -21,12 +20,12 @@ public class UserService {
         this.userStorage = storage;
     }
 
-    public User addUser(User user) {
+    public User addUser(User user) { // Исправлено название
         UserValidator.validate(user);
         return userStorage.addUser(user);
     }
 
-    public User updateUser(User user) {
+    public User updateUser(User user) { // Исправлено название
         UserValidator.validate(user);
         return userStorage.updateUser(user);
     }

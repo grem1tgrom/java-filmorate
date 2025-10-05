@@ -1,12 +1,12 @@
 package ru.yandex.practicum.filmorate.controllers;
 
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
-import javax.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -21,24 +21,24 @@ public class FilmController {
     }
 
     @GetMapping
-    public List<Film> getFilms() {
+    public List<Film> getAllFilms() {
         log.info("Получен GET запрос на :PORT/films");
         return filmService.getAllFilms();
     }
 
     @PostMapping
-    public Film create(@Valid @RequestBody final Film film) {
+    public Film createFilm(@Valid @RequestBody final Film film) {
         log.info("Получен POST запрос на :PORT/films");
         return filmService.addFilm(film);
     }
 
     @PutMapping
-    public Film update(@Valid @RequestBody final Film film) {
+    public Film updateFilm(@Valid @RequestBody final Film film) {
         log.info("Получен PUT запрос на :PORT/films");
         return filmService.updateFilm(film);
     }
 
-    @GetMapping("{id}")
+    @GetMapping("/{id}")
     public Film findFilmByID(@PathVariable Integer id) {
         log.info("Получен GET запрос на :PORT/films/{id}");
         return filmService.findFilmByID(id);
@@ -58,7 +58,7 @@ public class FilmController {
 
     @GetMapping("/popular")
     public List<Film> findTopLikedFilms(@RequestParam(defaultValue = "10") Integer count) {
-        log.info("Получен GET запрос на :PORT/films/popular?i=num");
+        log.info("Получен GET запрос на :PORT/films/popular?count={}", count);
         return filmService.findTopLikedFilms(count);
     }
 }

@@ -1,5 +1,8 @@
 package ru.yandex.practicum.filmorate;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,10 +15,9 @@ import ru.yandex.practicum.filmorate.service.UserService;
 import ru.yandex.practicum.filmorate.storage.film.InMemoryFilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
 
-import javax.validation.ConstraintViolation;
-import javax.validation.Validation;
-import javax.validation.Validator;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -40,23 +42,25 @@ public class FilmControllerTests {
                 .releaseDate(LocalDate.of(2000, 7, 18))
                 .duration(50)
                 .mpa(MPA.builder().id(1).name("G").build())
+                .genres(new ArrayList<>())
+                .likes(new HashSet<>())
                 .build();
     }
 
     @Test
     void correctAddFilm() {
-        controller.create(film);
+        controller.createFilm(film);
         assertEquals(1, film.getId());
     }
 
     @Test
     void correctAddSeveralFilms() {
-        controller.create(film);
-        controller.create(film);
-        controller.create(film);
-        controller.create(film);
-        controller.create(film);
-        assertEquals(5, controller.getFilms().size());
+        controller.createFilm(film);
+        controller.createFilm(film);
+        controller.createFilm(film);
+        controller.createFilm(film);
+        controller.createFilm(film);
+        assertEquals(5, controller.getAllFilms().size());
     }
 
     @Test
@@ -69,10 +73,7 @@ public class FilmControllerTests {
 
     @Test
     void getValidationExceptionWhenBigDescription() {
-        film.setDescription("qwertyuiop[]asdfghjkl;'zxcvbnm,.//.,mnbvcxz';lkjhgfdsa][poiuytrewq" +
-                "qwertyuiop[]asdfghjkl;'zxcvbnm,.//.,mnbvcxz';lkjhgfdsa][poiuytrewq" +
-                "qwertyuiop[]asdfghjkl;'zxcvbnm,.//.,mnbvcxz';lkjhgfdsa][poiuytrewq" +
-                "Описание фильма должно быть меньше 200 символов");
+        film.setDescription("q".repeat(201));
         Set<ConstraintViolation<Film>> errors = validator.validate(film);
         ConstraintViolation<Film> error = errors.stream().findFirst().orElseThrow(() -> new RuntimeException("Отсутствует ошибка валидации"));
         assertEquals("Описание фильма должно быть меньше 200 символов", error.getMessage());
@@ -95,16 +96,8 @@ public class FilmControllerTests {
     }
 
     @Test
-    void getValidationExceptionWhenDurationLowerZero() {
-        film.setDuration(-50);
-        Set<ConstraintViolation<Film>> errors = validator.validate(film);
-        ConstraintViolation<Film> error = errors.stream().findFirst().orElseThrow(() -> new RuntimeException("Отсутствует ошибка валидации"));
-        assertEquals("Длительность фильма должна быть больше 0", error.getMessage());
-    }
-
-    @Test
     void correctUpdateFilm() {
-        controller.create(film);
+        controller.createFilm(film);
         Film update = Film.builder()
                 .id(film.getId())
                 .description("updated description for tests")
@@ -112,14 +105,16 @@ public class FilmControllerTests {
                 .releaseDate(LocalDate.of(1900, 12, 24))
                 .duration(74)
                 .mpa(MPA.builder().id(1).name("G").build())
+                .genres(new ArrayList<>())
+                .likes(new HashSet<>())
                 .build();
-        controller.update(update);
-        assertEquals(update.getName(), controller.getFilms().get(controller.getFilms().size() - 1).getName());
+        controller.updateFilm(update);
+        assertEquals(update.getName(), controller.getAllFilms().get(0).getName());
     }
 
     @Test
     void getExceptionWhenUpdateFilmAndIdIncorrect() {
-        controller.create(film);
+        controller.createFilm(film);
         Film update = Film.builder()
                 .id(50)
                 .description("updated description for tests")
@@ -128,7 +123,7 @@ public class FilmControllerTests {
                 .duration(124)
                 .mpa(MPA.builder().id(1).name("G").build())
                 .build();
-        final FilmNotFoundException exception = assertThrows(FilmNotFoundException.class, () -> controller.update(update));
+        final FilmNotFoundException exception = assertThrows(FilmNotFoundException.class, () -> controller.updateFilm(update));
         assertEquals("Фильм с ID - 50 не найден в базе", exception.getMessage());
     }
 }

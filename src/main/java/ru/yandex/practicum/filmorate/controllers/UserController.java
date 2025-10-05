@@ -1,12 +1,12 @@
 package ru.yandex.practicum.filmorate.controllers;
 
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
 
-import javax.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -21,19 +21,19 @@ public class UserController {
     }
 
     @GetMapping
-    public List<User> getUsers() {
+    public List<User> getAllUsers() {
         log.info("Получен GET запрос на :PORT/users");
         return userService.getAllUsers();
     }
 
     @PostMapping
-    public User create(@Valid @RequestBody final User user) {
+    public User createUser(@Valid @RequestBody final User user) {
         log.info("Получен POST запрос на :PORT/users");
         return userService.addUser(user);
     }
 
     @PutMapping
-    public User update(@Valid @RequestBody final User user) {
+    public User updateUser(@Valid @RequestBody final User user) {
         log.info("Получен PUT запрос на :PORT/users");
         return userService.updateUser(user);
     }

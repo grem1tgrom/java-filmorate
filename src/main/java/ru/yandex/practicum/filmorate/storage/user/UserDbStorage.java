@@ -13,6 +13,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Component("UserDbStorage")
 @Slf4j
@@ -29,15 +30,12 @@ public class UserDbStorage implements UserStorage {
     @Override
     public List<User> getAllUsers() {
         String sqlQuery = "SELECT * FROM users";
-        List<User> allUsers = jdbcTemplate.query(sqlQuery, this::sqlRowToUser);
-        log.debug("Сформирован список всех пользователей в базе размерностью {}", allUsers.size());
-        return allUsers;
+        return jdbcTemplate.query(sqlQuery, this::sqlRowToUser);
     }
 
     @Override
     public User addUser(User user) {
-        user.setId(nextID);
-        nextID++;
+        user.setId(nextID++);
         String sqlQuery = "INSERT INTO users(id, email, login, name, birthday) VALUES(?, ?, ?, ?, ?)";
         jdbcTemplate.update(sqlQuery,
                 user.getId(),
@@ -45,7 +43,6 @@ public class UserDbStorage implements UserStorage {
                 user.getLogin(),
                 user.getName(),
                 user.getBirthday());
-        log.debug("Добавлен пользователь с ID {}, его логин {}", user.getId(), user.getLogin());
         return user;
     }
 
@@ -56,26 +53,25 @@ public class UserDbStorage implements UserStorage {
         }
         String sqlQuery = "UPDATE users SET login = ?, email = ?, name = ?, birthday =? WHERE id = ?";
         jdbcTemplate.update(sqlQuery, user.getLogin(), user.getEmail(), user.getName(), user.getBirthday(), user.getId());
-        log.debug("Пользователь с ID {} и логином {} обновил данные", user.getId(), user.getLogin());
         return user;
     }
 
     @Override
     public void deleteUserByID(Integer id) {
+        // Not implemented
     }
 
     @Override
     public User findUserByID(Integer id) {
         SqlRowSet userRow = jdbcTemplate.queryForRowSet("SELECT * FROM users WHERE id = ?", id);
         if (userRow.next()) {
-            log.debug("Найден пользователь с ID {}, его логин {}", userRow.getInt("id"), userRow.getString("login"));
             return User.builder()
                     .id(userRow.getInt("id"))
                     .login(userRow.getString("login"))
                     .email(userRow.getString("email"))
                     .name(userRow.getString("name"))
                     .birthday(userRow.getDate("birthday").toLocalDate())
-                    .friends(new HashSet<>())
+                    .friends(getFriendsByUserId(id))
                     .build();
         } else {
             throw new UserNotFoundException("Пользователь с ID " + id + " не найден в базе");
@@ -90,12 +86,10 @@ public class UserDbStorage implements UserStorage {
         SqlRowSet friendshipRow = jdbcTemplate.queryForRowSet("SELECT * FROM friendship WHERE user_id = ? AND friend_id = ?",
                 userID, friendID);
         if (friendshipRow.next()) {
-            log.debug("Пользователь с ID {} уже находится в друзьях у пользователя с ID {}", friendID, userID);
             return false;
         }
         String sqlQuery = "INSERT INTO friendship(user_id, friend_id) VALUES(?, ?)";
         jdbcTemplate.update(sqlQuery, userID, friendID);
-        log.debug("Пользователь с ID {} успешно добавлен в друзья к пользователю с ID {}", friendID, userID);
         return true;
     }
 
@@ -105,12 +99,7 @@ public class UserDbStorage implements UserStorage {
             throw new UserNotFoundException("Один из пользователей отсутствует в базе, удаление дружбы невозможно");
         }
         String sqlQuery = "DELETE FROM friendship WHERE user_id = ? AND friend_id = ?";
-        if (jdbcTemplate.update(sqlQuery, userID, friendID) > 0) {
-            log.debug("Пользователь с ID {} успешно удален из друзей у пользователя с ID {}", friendID, userID);
-            return true;
-        }
-        log.debug("Пользователь с ID {} отсутствует в друзьях у пользователя с ID {}", friendID, userID);
-        return false;
+        return jdbcTemplate.update(sqlQuery, userID, friendID) > 0;
     }
 
     @Override
@@ -121,7 +110,6 @@ public class UserDbStorage implements UserStorage {
         for (int currFriendID : friendsID) {
             friends.add(findUserByID(currFriendID));
         }
-        log.debug("Сформирован список друзей для пользователя с ID {} размерностью {}", id, friends.size());
         return friends;
     }
 
@@ -134,7 +122,6 @@ public class UserDbStorage implements UserStorage {
         for (int currFriendID : crossedFriendsID) {
             crossedFriends.add(findUserByID(currFriendID));
         }
-        log.debug("Сформирован список общих друзей для пользователей с ID {} и {} размерностью {}", userID, anotherUserID, crossedFriends.size());
         return crossedFriends;
     }
 
@@ -145,22 +132,28 @@ public class UserDbStorage implements UserStorage {
     }
 
     private User sqlRowToUser(ResultSet resultSet, int rowNumber) throws SQLException {
+        int userId = resultSet.getInt("id");
         return User.builder()
-                .id(resultSet.getInt("id"))
+                .id(userId)
                 .login(resultSet.getString("login"))
                 .email(resultSet.getString("email"))
                 .name(resultSet.getString("name"))
                 .birthday(resultSet.getDate("birthday").toLocalDate())
-                .friends(new HashSet<>())
+                .friends(getFriendsByUserId(userId))
                 .build();
+    }
+
+    private Set<Integer> getFriendsByUserId(Integer id) {
+        String sqlQuery = "SELECT friend_id FROM friendship WHERE user_id = ?";
+        List<Integer> friends = jdbcTemplate.queryForList(sqlQuery, Integer.class, id);
+        return new HashSet<>(friends);
     }
 
     private Integer getMaxIdFromDb() {
         SqlRowSet maxIdRow = jdbcTemplate.queryForRowSet("SELECT MAX(id) AS max_id FROM users");
         if (maxIdRow.next()) {
             return maxIdRow.getInt("max_id");
-        } else {
-            return 0;
         }
+        return 0;
     }
 }
