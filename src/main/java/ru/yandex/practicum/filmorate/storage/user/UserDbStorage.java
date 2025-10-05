@@ -3,27 +3,30 @@ package ru.yandex.practicum.filmorate.storage.user;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 
 @Component("UserDbStorage")
 @Slf4j
 public class UserDbStorage implements UserStorage {
-    private int nextID;
     private final JdbcTemplate jdbcTemplate;
 
     @Autowired
     public UserDbStorage(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
-        nextID = getMaxIdFromDb() + 1;
     }
 
     @Override
@@ -36,15 +39,21 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public User addUser(User user) {
-        user.setId(nextID);
-        nextID++;
-        String sqlQuery = "INSERT INTO users(id, email, login, name, birthday) VALUES(?, ?, ?, ?, ?)";
-        jdbcTemplate.update(sqlQuery,
-                user.getId(),
-                user.getEmail(),
-                user.getLogin(),
-                user.getName(),
-                user.getBirthday());
+        String sqlQuery = "INSERT INTO users(email, login, name, birthday) VALUES(?, ?, ?, ?)";
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+
+        jdbcTemplate.update(connection -> {
+            PreparedStatement ps = connection.prepareStatement(sqlQuery, Statement.RETURN_GENERATED_KEYS);
+            ps.setString(1, user.getEmail());
+            ps.setString(2, user.getLogin());
+            ps.setString(3, user.getName());
+            ps.setDate(4, java.sql.Date.valueOf(user.getBirthday()));
+            return ps;
+        }, keyHolder);
+
+        int newId = Objects.requireNonNull(keyHolder.getKey()).intValue();
+        user.setId(newId);
+
         log.debug("Добавлен пользователь с ID {}, его логин {}", user.getId(), user.getLogin());
         return user;
     }
@@ -62,6 +71,8 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public void deleteUserByID(Integer id) {
+        String sqlQuery = "DELETE FROM users WHERE id = ?";
+        jdbcTemplate.update(sqlQuery, id);
     }
 
     @Override
@@ -74,8 +85,8 @@ public class UserDbStorage implements UserStorage {
                     .login(userRow.getString("login"))
                     .email(userRow.getString("email"))
                     .name(userRow.getString("name"))
-                    .birthday(userRow.getDate("birthday").toLocalDate())
-                    .friends(new HashSet<>())
+                    .birthday(Objects.requireNonNull(userRow.getDate("birthday")).toLocalDate())
+                    .friends(new HashSet<>()) // Друзей подгружаем отдельно
                     .build();
         } else {
             throw new UserNotFoundException("Пользователь с ID " + id + " не найден в базе");
@@ -115,6 +126,9 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public List<User> getFriendsOfUser(Integer id) {
+        if (!idIsPresent(id)) {
+            throw new UserNotFoundException("Пользователь с ID " + id + " не найден");
+        }
         List<User> friends = new ArrayList<>();
         String sqlQuery = "SELECT friend_id FROM friendship WHERE user_id = ?";
         List<Integer> friendsID = jdbcTemplate.queryForList(sqlQuery, Integer.class, id);
@@ -153,14 +167,5 @@ public class UserDbStorage implements UserStorage {
                 .birthday(resultSet.getDate("birthday").toLocalDate())
                 .friends(new HashSet<>())
                 .build();
-    }
-
-    private Integer getMaxIdFromDb() {
-        SqlRowSet maxIdRow = jdbcTemplate.queryForRowSet("SELECT MAX(id) AS max_id FROM users");
-        if (maxIdRow.next()) {
-            return maxIdRow.getInt("max_id");
-        } else {
-            return 0;
-        }
     }
 }

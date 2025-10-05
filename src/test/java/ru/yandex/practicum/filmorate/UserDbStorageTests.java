@@ -1,10 +1,14 @@
 package ru.yandex.practicum.filmorate;
 
 import lombok.RequiredArgsConstructor;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.jdbc.Sql;
 import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserDbStorage;
@@ -17,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 @AutoConfigureTestDatabase
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
+@Sql(scripts = {"/schema.sql", "/data.sql"}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class UserDbStorageTests {
     private final UserDbStorage storage;
@@ -60,6 +65,8 @@ public class UserDbStorageTests {
     @Test
     @Order(4)
     public void getCorrectAllUsersAfterSecondUser() {
+        storage.addUser(User.builder().email("1@1.ru").login("u1").name("n1").birthday(LocalDate.now()).build());
+        storage.addUser(User.builder().email("2@2.ru").login("u2").name("n2").birthday(LocalDate.now()).build());
         assertEquals(2, storage.getAllUsers().size());
     }
 
@@ -67,14 +74,23 @@ public class UserDbStorageTests {
     @Order(5)
     public void correctUpdatingUser() {
         User user = User.builder()
-                .id(2)
+                .email("333@333.ru")
+                .login("NOT_UPDATED")
+                .name("TestingName")
+                .birthday(LocalDate.of(2002, 2, 23))
+                .build();
+        User addedUser = storage.addUser(user);
+
+        User userToUpdate = User.builder()
+                .id(addedUser.getId())
                 .email("333@333.ru")
                 .login("UPDATED")
                 .name("TestingName")
                 .birthday(LocalDate.of(2002, 2, 23))
                 .build();
-        storage.updateUser(user);
-        assertEquals("UPDATED", storage.findUserByID(2).getLogin());
+
+        storage.updateUser(userToUpdate);
+        assertEquals("UPDATED", storage.findUserByID(addedUser.getId()).getLogin());
     }
 
     @Test
@@ -87,7 +103,14 @@ public class UserDbStorageTests {
     @Test
     @Order(7)
     public void getCorrectUserByID() {
-        assertEquals("111@111.ru", storage.findUserByID(1).getEmail());
+        User user = User.builder()
+                .email("111@111.ru")
+                .login("testLogin")
+                .name("TestingName")
+                .birthday(LocalDate.of(2002, 2, 23))
+                .build();
+        User addedUser = storage.addUser(user);
+        assertEquals("111@111.ru", storage.findUserByID(addedUser.getId()).getEmail());
     }
 
     @Test
@@ -100,31 +123,21 @@ public class UserDbStorageTests {
     @Test
     @Order(9)
     public void getExceptionWhenIncorrectFriendIdInFriendship() {
-        final UserNotFoundException exception = assertThrows(UserNotFoundException.class, () -> storage.addFriendship(2, 222));
+        User user = storage.addUser(User.builder().email("2@2.ru").login("u2").name("n2").birthday(LocalDate.now()).build());
+        final UserNotFoundException exception = assertThrows(UserNotFoundException.class, () -> storage.addFriendship(user.getId(), 222));
         assertEquals("Один из пользователей отсутствует в базе, регистрация дружбы невозможна", exception.getMessage());
     }
 
     @Test
     @Order(10)
     public void correctAddFriendship() {
-        User user = User.builder()
-                .email("444@444.ru")
-                .login("ThirdUser")
-                .name("TestingName")
-                .birthday(LocalDate.of(2002, 2, 23))
-                .build();
-        storage.addUser(user);
-        User anotherUser = User.builder()
-                .email("555@555.ru")
-                .login("FourthUser")
-                .name("TestingName")
-                .birthday(LocalDate.of(2002, 2, 23))
-                .build();
-        storage.addUser(anotherUser);
+        User user1 = storage.addUser(User.builder().email("1@1.ru").login("u1").name("n1").birthday(LocalDate.now()).build());
+        User user3 = storage.addUser(User.builder().email("3@3.ru").login("u3").name("n3").birthday(LocalDate.now()).build());
+        User user4 = storage.addUser(User.builder().email("4@4.ru").login("u4").name("n4").birthday(LocalDate.now()).build());
 
-        storage.addFriendship(1, 3);
-        storage.addFriendship(1, 4);
-        assertEquals(2, storage.getFriendsOfUser(1).size());
+        storage.addFriendship(user1.getId(), user3.getId());
+        storage.addFriendship(user1.getId(), user4.getId());
+        assertEquals(2, storage.getFriendsOfUser(user1.getId()).size());
     }
 
     @Test
@@ -137,35 +150,47 @@ public class UserDbStorageTests {
     @Test
     @Order(12)
     public void getExceptionWhenIncorrectFriendInRemovingFriendship() {
-        final UserNotFoundException exception = assertThrows(UserNotFoundException.class, () -> storage.removeFriendship(1, 500));
+        User user1 = storage.addUser(User.builder().email("1@1.ru").login("u1").name("n1").birthday(LocalDate.now()).build());
+        final UserNotFoundException exception = assertThrows(UserNotFoundException.class, () -> storage.removeFriendship(user1.getId(), 500));
         assertEquals("Один из пользователей отсутствует в базе, удаление дружбы невозможно", exception.getMessage());
     }
 
     @Test
     @Order(13)
     public void correctRemovingFriendship() {
-        storage.removeFriendship(1, 4);
-        assertEquals(1, storage.getFriendsOfUser(1).size());
+        User user1 = storage.addUser(User.builder().email("1@1.ru").login("u1").name("n1").birthday(LocalDate.now()).build());
+        User user4 = storage.addUser(User.builder().email("4@4.ru").login("u4").name("n4").birthday(LocalDate.now()).build());
+        storage.addFriendship(user1.getId(), user4.getId()); // Сначала добавляем друга
+        storage.removeFriendship(user1.getId(), user4.getId());
+        assertEquals(0, storage.getFriendsOfUser(user1.getId()).size());
     }
 
     @Test
     @Order(14)
     public void correctGetEmptyFriendsCrossing() {
-        assertEquals(0, storage.getFriendsCrossing(1, 2).size());
+        User user1 = storage.addUser(User.builder().email("1@1.ru").login("u1").name("n1").birthday(LocalDate.now()).build());
+        User user2 = storage.addUser(User.builder().email("2@2.ru").login("u2").name("n2").birthday(LocalDate.now()).build());
+        assertEquals(0, storage.getFriendsCrossing(user1.getId(), user2.getId()).size());
     }
 
     @Test
     @Order(15)
     public void correctGetFriendsCrossing() {
-        storage.addFriendship(2, 3);
-        List<User> friends = storage.getFriendsCrossing(1, 2);
-        assertEquals(3, friends.get(0).getId());
+        User user1 = storage.addUser(User.builder().email("1@1.ru").login("u1").name("n1").birthday(LocalDate.now()).build());
+        User user2 = storage.addUser(User.builder().email("2@2.ru").login("u2").name("n2").birthday(LocalDate.now()).build());
+        User user3 = storage.addUser(User.builder().email("3@3.ru").login("u3").name("n3").birthday(LocalDate.now()).build());
+        storage.addFriendship(user1.getId(), user3.getId());
+        storage.addFriendship(user2.getId(), user3.getId());
+        List<User> friends = storage.getFriendsCrossing(user1.getId(), user2.getId());
+        assertEquals(1, friends.size());
+        assertEquals(user3.getId(), friends.get(0).getId());
     }
 
     @Test
     @Order(16)
     public void getTrueWhenIdPresented() {
-        assertTrue(storage.idIsPresent(4));
+        User user4 = storage.addUser(User.builder().email("4@4.ru").login("u4").name("n4").birthday(LocalDate.now()).build());
+        assertTrue(storage.idIsPresent(user4.getId()));
     }
 
     @Test
