@@ -2,28 +2,26 @@ package ru.yandex.practicum.filmorate.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
+import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.storage.FilmStorage;
-import ru.yandex.practicum.filmorate.storage.UserStorage;
+import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
+import ru.yandex.practicum.filmorate.validators.FilmValidator;
 
-import java.time.LocalDate;
 import java.util.List;
-import java.util.stream.Collectors;
 
-@Service
 @Slf4j
+@Service
 public class FilmService {
     private final FilmStorage filmStorage;
-    private final UserStorage userStorage;
-    private static final LocalDate FIRST_FILM_DATE = LocalDate.of(1895, 12, 28);
+    private final UserService userService;
 
     @Autowired
-    public FilmService(FilmStorage filmStorage, UserStorage userStorage) {
+    public FilmService(@Qualifier("FilmDbStorage") FilmStorage filmStorage, UserService userService) {
         this.filmStorage = filmStorage;
-        this.userStorage = userStorage;
+        this.userService = userService;
     }
 
     public List<Film> getAllFilms() {
@@ -31,47 +29,48 @@ public class FilmService {
     }
 
     public Film addFilm(Film film) {
-        validateFilm(film);
+        FilmValidator.validate(film);
         return filmStorage.addFilm(film);
     }
 
     public Film updateFilm(Film film) {
-        validateFilm(film);
+        FilmValidator.validate(film);
         return filmStorage.updateFilm(film);
     }
 
-    public Film getFilmById(int id) {
-        return filmStorage.getFilmById(id);
+    public Film findFilmByID(Integer id) {
+        return filmStorage.getFilmByID(id);
     }
 
-    public void addLike(int filmId, int userId) {
-        filmStorage.getFilmById(filmId);
-        userStorage.getUserById(userId);
-        Film film = filmStorage.getFilmById(filmId);
-        film.getLikes().add(userId);
-    }
-
-    public void removeLike(int filmId, int userId) {
-        filmStorage.getFilmById(filmId);
-        userStorage.getUserById(userId);
-        Film film = filmStorage.getFilmById(filmId);
-        if (!film.getLikes().contains(userId)) {
-            throw new NotFoundException("Лайк от пользователя с id=" + userId + " не найден.");
+    public String addLike(Integer filmID, Integer userID) {
+        if (!userService.checkUserIdInStorage(userID)) {
+            throw new UserNotFoundException("Пользователь с ID - " + userID + " не найден в базе");
         }
-        film.getLikes().remove(userId);
-    }
-
-    public List<Film> getPopularFilms(int count) {
-        return filmStorage.getAllFilms().stream()
-                .sorted((f1, f2) -> f2.getLikes().size() - f1.getLikes().size())
-                .limit(count)
-                .collect(Collectors.toList());
-    }
-
-    private void validateFilm(Film film) {
-        if (film.getReleaseDate().isBefore(FIRST_FILM_DATE)) {
-            log.error("Ошибка валидации: дата релиза не может быть раньше 28 декабря 1895 года.");
-            throw new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года.");
+        boolean success = filmStorage.addLike(filmID, userID);
+        if (success) {
+            return String.format("Фильм с ID %d получил лайк от пользователя с ID %d", filmID, userID);
+        } else {
+            return String.format("Пользователь с ID %d уже поставил лайк фильму с ID %d", userID, filmID);
         }
+    }
+
+    public String removeLike(Integer filmID, Integer userID) {
+        if (!userService.checkUserIdInStorage(userID)) {
+            throw new UserNotFoundException("Пользователь с ID - " + userID + " не найден в базе");
+        }
+        boolean success = filmStorage.removeLike(filmID, userID);
+        if (success) {
+            return String.format("Лайк от пользователя с ID %d удален у фильма с ID %d", userID, filmID);
+        } else {
+            return String.format("Лайк от пользователя с ID %d отсутствует у фильма с ID %d", userID, filmID);
+        }
+    }
+
+    public List<Film> findTopLikedFilms(Integer count) {
+        if (count == null || count <= 0) {
+            throw new ValidationException("Количество выводимых фильмов должно быть больше 0");
+        }
+        log.info("Запрошен топ фильмов размерностью {}", count);
+        return filmStorage.findTopLikedFilms(count);
     }
 }
