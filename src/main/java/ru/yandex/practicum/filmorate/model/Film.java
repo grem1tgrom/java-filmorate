@@ -6,6 +6,8 @@ import lombok.Data;
 import ru.yandex.practicum.filmorate.validators.LocalDateAfter;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -30,6 +32,9 @@ public class Film {
     @NotNull(message = "Рейтинг фильма не может быть пустым")
     private MPA mpa;
 
-    private List<Genre> genres;
-    private Set<Integer> likes;
+    @Builder.Default
+    private List<Genre> genres = new ArrayList<>();
+
+    @Builder.Default
+    private Set<Integer> likes = new HashSet<>();
 }
