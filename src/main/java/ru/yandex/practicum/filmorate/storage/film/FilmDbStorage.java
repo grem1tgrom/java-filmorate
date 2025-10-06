@@ -16,6 +16,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Component("FilmDbStorage")
 @Slf4j
@@ -55,8 +56,6 @@ public class FilmDbStorage implements FilmStorage {
                 film.getDuration(),
                 film.getMpa().getId());
         saveGenresOfFilmInDB(film);
-        String sqlEmptyLike = "INSERT INTO likes(film_id, user_id) VALUES (?, NULL)";
-        jdbcTemplate.update(sqlEmptyLike, film.getId());
         log.debug("Добавлен фильм с ID {}, его название {}", film.getId(), film.getName());
         return getFilmByID(film.getId());
     }
@@ -94,7 +93,7 @@ public class FilmDbStorage implements FilmStorage {
                     .duration(filmRow.getInt("duration"))
                     .mpa(mpaStorage.getMpaByID(filmRow.getInt("mpa_id")))
                     .genres(getGenresOfFilmByID(filmRow.getInt("id")))
-                    .likes(new HashSet<>())
+                    .likes(getLikesByFilmId(id))
                     .build();
         } else {
             throw new FilmNotFoundException("Фильм с ID - " + id + " не найден в базе");
@@ -145,15 +144,19 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public List<Film> findTopLikedFilms(Integer count) {
-        List<Film> topFilms = new ArrayList<>();
-        String sqlQuery = "SELECT film_id, COUNT(user_id) AS user_likes FROM likes " +
-                "GROUP BY film_id ORDER BY user_likes DESC LIMIT ?";
-        SqlRowSet filmsWithLikes = jdbcTemplate.queryForRowSet(sqlQuery, count);
-        while (filmsWithLikes.next()) {
-            topFilms.add(getFilmByID(filmsWithLikes.getInt("film_id")));
-        }
+        String sqlQuery = "SELECT f.* FROM films AS f " +
+                "LEFT JOIN likes AS l ON f.id = l.film_id " +
+                "GROUP BY f.id " +
+                "ORDER BY COUNT(l.user_id) DESC " +
+                "LIMIT ?";
+        List<Film> topFilms = jdbcTemplate.query(sqlQuery, this::sqlRowToFilm, count);
         log.debug("Сформирован список фильмов с наибольшим количеством лайков размерностью {}", topFilms.size());
         return topFilms;
+    }
+
+    private Set<Integer> getLikesByFilmId(Integer filmId) {
+        String sql = "SELECT user_id FROM likes WHERE film_id = ?";
+        return new HashSet<>(jdbcTemplate.queryForList(sql, Integer.class, filmId));
     }
 
     private void saveGenresOfFilmInDB(Film film) {
@@ -190,15 +193,16 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     private Film sqlRowToFilm(ResultSet resultSet, int rowNumber) throws SQLException {
+        int filmId = resultSet.getInt("id");
         return Film.builder()
-                .id(resultSet.getInt("id"))
+                .id(filmId)
                 .name(resultSet.getString("name"))
                 .description(resultSet.getString("description"))
                 .releaseDate(resultSet.getDate("release_date").toLocalDate())
                 .duration(resultSet.getInt("duration"))
                 .mpa(mpaStorage.getMpaByID(resultSet.getInt("MPA_id")))
-                .genres(getGenresOfFilmByID(resultSet.getInt("id")))
-                .likes(new HashSet<>())
+                .genres(getGenresOfFilmByID(filmId))
+                .likes(getLikesByFilmId(filmId))
                 .build();
     }
 
