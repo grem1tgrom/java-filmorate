@@ -89,9 +89,6 @@ public class UserDbStorage implements UserStorage {
         }
         String sqlQuery = "INSERT INTO friendship(user_id, friend_id) VALUES(?, ?)";
         jdbcTemplate.update(sqlQuery, userID, friendID);
-
-        jdbcTemplate.update(sqlQuery, friendID, userID);
-
         return true;
     }
 
@@ -101,10 +98,7 @@ public class UserDbStorage implements UserStorage {
             throw new UserNotFoundException("Один из пользователей отсутствует в базе, удаление дружбы невозможно");
         }
         String sqlQuery = "DELETE FROM friendship WHERE user_id = ? AND friend_id = ?";
-
         int deletedRows = jdbcTemplate.update(sqlQuery, userID, friendID);
-        jdbcTemplate.update(sqlQuery, friendID, userID);
-
         return deletedRows > 0;
     }
 
