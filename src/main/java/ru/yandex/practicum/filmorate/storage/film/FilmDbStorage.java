@@ -116,7 +116,18 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public boolean addLike(Integer filmID, Integer userID) {
-        String sqlQuery = "MERGE INTO likes (film_id, user_id) VALUES (?, ?)";
+        if (!idIsPresent(filmID)) {
+            throw new FilmNotFoundException("Фильм с ID " + filmID + " не найден в базе");
+        }
+        String checkSql = "SELECT COUNT(*) FROM likes WHERE film_id = ? AND user_id = ?";
+        Integer likeCount = jdbcTemplate.queryForObject(checkSql, Integer.class, filmID, userID);
+
+        if (likeCount != null && likeCount > 0) {
+            log.debug("Лайк от пользователя ID {} для фильма ID {} уже существует.", userID, filmID);
+            return false;
+        }
+
+        String sqlQuery = "INSERT INTO likes (film_id, user_id) VALUES (?, ?)";
         jdbcTemplate.update(sqlQuery, filmID, userID);
         log.debug("Добавлен лайк от пользователя с ID {} к фильму с ID {}", userID, filmID);
         return true;
@@ -124,6 +135,9 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public boolean removeLike(Integer filmID, Integer userID) {
+        if (!idIsPresent(filmID)) {
+            throw new FilmNotFoundException("Фильм с ID " + filmID + " не найден в базе");
+        }
         String sqlQuery = "DELETE FROM likes WHERE film_id = ? AND user_id = ?";
         int deletedEntity = jdbcTemplate.update(sqlQuery, filmID, userID);
         if (deletedEntity > 0) {
