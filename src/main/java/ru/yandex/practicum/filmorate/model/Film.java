@@ -1,8 +1,10 @@
 package ru.yandex.practicum.filmorate.model;
 
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import ru.yandex.practicum.filmorate.validators.LocalDateAfter;
 
 import java.time.LocalDate;
@@ -12,7 +14,9 @@ import java.util.List;
 import java.util.Set;
 
 @Data
-@Builder
+@Builder(toBuilder = true)
+@AllArgsConstructor
+@NoArgsConstructor
 public class Film {
     private int id;
 
