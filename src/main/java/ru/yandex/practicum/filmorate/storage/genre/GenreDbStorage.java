@@ -2,7 +2,6 @@ package ru.yandex.practicum.filmorate.storage.genre;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exceptions.GenreNotFoundException;
 import ru.yandex.practicum.filmorate.model.Genre;
@@ -23,29 +22,25 @@ public class GenreDbStorage implements GenreStorage {
     @Override
     public List<Genre> getAllGenres() {
         String sqlQuery = "SELECT * FROM genres";
-        List<Genre> result = jdbcTemplate.query(sqlQuery, this::sqlRowToGenre);
+        List<Genre> result = jdbcTemplate.query(sqlQuery, GenreDbStorage::makeGenre);
         log.info("Сформирован список всех жанров в базе размерностью {}", result.size());
         return result;
     }
 
     @Override
     public Genre getGenreByID(int id) {
-        SqlRowSet genreRows = jdbcTemplate.queryForRowSet("SELECT * FROM genres WHERE id = ?", id);
-        if (genreRows.next()) {
-            log.debug("Найден жанр с ID {}, его название {}", genreRows.getInt("id"), genreRows.getString("name"));
-            return Genre.builder()
-                    .id(genreRows.getInt("id"))
-                    .name(genreRows.getString("name"))
-                    .build();
-        } else {
+        final String sqlQuery = "SELECT * FROM GENRES WHERE id = ?";
+        final List<Genre> genres = jdbcTemplate.query(sqlQuery, GenreDbStorage::makeGenre, id);
+        if (genres.size() != 1) {
             throw new GenreNotFoundException("Жанр с ID " + id + " не найден в базе");
         }
+        return genres.get(0);
     }
 
-    private Genre sqlRowToGenre(ResultSet resultSet, int rowNumber) throws SQLException {
+    static Genre makeGenre(ResultSet rs, int rowNum) throws SQLException {
         return Genre.builder()
-                .id(resultSet.getInt("id"))
-                .name(resultSet.getString("name"))
+                .id(rs.getInt("id"))
+                .name(rs.getString("name"))
                 .build();
     }
 }

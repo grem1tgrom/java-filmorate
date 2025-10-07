@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
@@ -34,6 +35,9 @@ public class FilmService {
     }
 
     public Film updateFilm(Film film) {
+        if (!filmStorage.idIsPresent(film.getId())) {
+            throw new FilmNotFoundException("Фильм с ID - " + film.getId() + " не найден в базе");
+        }
         FilmValidator.validate(film);
         return filmStorage.updateFilm(film);
     }

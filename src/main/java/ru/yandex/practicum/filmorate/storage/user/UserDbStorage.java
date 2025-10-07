@@ -3,14 +3,17 @@ package ru.yandex.practicum.filmorate.storage.user;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 
+import java.sql.Date;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -18,13 +21,11 @@ import java.util.Set;
 @Component("UserDbStorage")
 @Slf4j
 public class UserDbStorage implements UserStorage {
-    private int nextID;
     private final JdbcTemplate jdbcTemplate;
 
     @Autowired
     public UserDbStorage(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
-        nextID = getMaxIdFromDb() + 1;
     }
 
     @Override
@@ -35,14 +36,17 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public User addUser(User user) {
-        user.setId(nextID++);
-        String sqlQuery = "INSERT INTO users(id, email, login, name, birthday) VALUES(?, ?, ?, ?, ?)";
-        jdbcTemplate.update(sqlQuery,
-                user.getId(),
-                user.getEmail(),
-                user.getLogin(),
-                user.getName(),
-                user.getBirthday());
+        String sqlQuery = "INSERT INTO users(email, login, name, birthday) VALUES(?, ?, ?, ?)";
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbcTemplate.update(connection -> {
+            PreparedStatement stmt = connection.prepareStatement(sqlQuery, new String[]{"id"});
+            stmt.setString(1, user.getEmail());
+            stmt.setString(2, user.getLogin());
+            stmt.setString(3, user.getName());
+            stmt.setDate(4, Date.valueOf(user.getBirthday()));
+            return stmt;
+        }, keyHolder);
+        user.setId(keyHolder.getKey().intValue());
         return user;
     }
 
@@ -54,10 +58,6 @@ public class UserDbStorage implements UserStorage {
         String sqlQuery = "UPDATE users SET login = ?, email = ?, name = ?, birthday =? WHERE id = ?";
         jdbcTemplate.update(sqlQuery, user.getLogin(), user.getEmail(), user.getName(), user.getBirthday(), user.getId());
         return user;
-    }
-
-    @Override
-    public void deleteUserByID(Integer id) {
     }
 
     @Override
@@ -82,14 +82,9 @@ public class UserDbStorage implements UserStorage {
         if (!idIsPresent(userID) || !idIsPresent(friendID)) {
             throw new UserNotFoundException("Один из пользователей отсутствует в базе, регистрация дружбы невозможна");
         }
-        SqlRowSet friendshipRow = jdbcTemplate.queryForRowSet("SELECT * FROM friendship WHERE user_id = ? AND friend_id = ?",
-                userID, friendID);
-        if (friendshipRow.next()) {
-            return false;
-        }
-        String sqlQuery = "INSERT INTO friendship(user_id, friend_id) VALUES(?, ?)";
-        jdbcTemplate.update(sqlQuery, userID, friendID);
-        return true;
+        String sqlQuery = "MERGE INTO friendship(user_id, friend_id) VALUES(?, ?)";
+        int updatedRows = jdbcTemplate.update(sqlQuery, userID, friendID);
+        return updatedRows > 0;
     }
 
     @Override
@@ -104,31 +99,33 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public List<User> getFriendsOfUser(Integer id) {
-        List<User> friends = new ArrayList<>();
-        String sqlQuery = "SELECT friend_id FROM friendship WHERE user_id = ?";
-        List<Integer> friendsID = jdbcTemplate.queryForList(sqlQuery, Integer.class, id);
-        for (int currFriendID : friendsID) {
-            friends.add(findUserByID(currFriendID));
-        }
-        return friends;
+        String sqlQuery = "SELECT u.* FROM users u JOIN friendship f ON u.id = f.friend_id WHERE f.user_id = ?";
+        return jdbcTemplate.query(sqlQuery, this::sqlRowToUser, id);
     }
 
     @Override
     public List<User> getFriendsCrossing(int userID, int anotherUserID) {
-        List<User> crossedFriends = new ArrayList<>();
-        String sqlQuery = "SELECT friend_id FROM friendship WHERE user_id = ? " +
-                "AND friend_id IN (SELECT friend_id FROM friendship WHERE user_id = ?)";
-        List<Integer> crossedFriendsID = jdbcTemplate.queryForList(sqlQuery, Integer.class, userID, anotherUserID);
-        for (int currFriendID : crossedFriendsID) {
-            crossedFriends.add(findUserByID(currFriendID));
-        }
-        return crossedFriends;
+        String sqlQuery = "SELECT u.* FROM users u " +
+                "JOIN friendship f1 ON u.id = f1.friend_id " +
+                "JOIN friendship f2 ON u.id = f2.friend_id " +
+                "WHERE f1.user_id = ? AND f2.user_id = ?";
+        return jdbcTemplate.query(sqlQuery, this::sqlRowToUser, userID, anotherUserID);
     }
+
 
     @Override
     public boolean idIsPresent(Integer id) {
         SqlRowSet userRow = jdbcTemplate.queryForRowSet("SELECT * FROM users WHERE id = ?", id);
         return userRow.next();
+    }
+
+    @Override
+    public void deleteUserByID(Integer id) {
+        if (!idIsPresent(id)) {
+            throw new UserNotFoundException("Пользователь с ID " + id + " не найден в базе");
+        }
+        String sqlQuery = "DELETE FROM users WHERE id = ?";
+        jdbcTemplate.update(sqlQuery, id);
     }
 
     private User sqlRowToUser(ResultSet resultSet, int rowNumber) throws SQLException {
@@ -147,13 +144,5 @@ public class UserDbStorage implements UserStorage {
         String sqlQuery = "SELECT friend_id FROM friendship WHERE user_id = ?";
         List<Integer> friends = jdbcTemplate.queryForList(sqlQuery, Integer.class, id);
         return new HashSet<>(friends);
-    }
-
-    private Integer getMaxIdFromDb() {
-        SqlRowSet maxIdRow = jdbcTemplate.queryForRowSet("SELECT MAX(id) AS max_id FROM users");
-        if (maxIdRow.next()) {
-            return maxIdRow.getInt("max_id");
-        }
-        return 0;
     }
 }
