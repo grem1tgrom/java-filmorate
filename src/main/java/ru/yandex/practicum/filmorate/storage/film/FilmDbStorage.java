@@ -66,6 +66,9 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Film updateFilm(Film film) {
+        if (!idIsPresent(film.getId())) {
+            throw new FilmNotFoundException("Фильм с ID - " + film.getId() + " не найден в базе");
+        }
         String sqlQuery = "UPDATE films SET name = ?, description = ?, release_date = ?, duration = ?, " +
                 "MPA_id = ? WHERE id = ?";
         jdbcTemplate.update(sqlQuery,

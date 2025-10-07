@@ -3,17 +3,18 @@ package ru.yandex.practicum.filmorate;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.DirtiesContext;
 import ru.yandex.practicum.filmorate.controllers.FilmController;
 import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.MPA;
-import ru.yandex.practicum.filmorate.service.FilmService;
-import ru.yandex.practicum.filmorate.service.UserService;
-import ru.yandex.practicum.filmorate.storage.film.InMemoryFilmStorage;
-import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -23,10 +24,15 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+@SpringBootTest
+@AutoConfigureTestDatabase
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 public class FilmControllerTests {
-    static Validator validator;
-    FilmController controller;
-    Film film;
+
+    private final FilmController controller;
+    private static Validator validator;
+    private Film film;
 
     @BeforeAll
     public static void start() {
@@ -35,7 +41,6 @@ public class FilmControllerTests {
 
     @BeforeEach
     void beforeEach() {
-        controller = new FilmController(new FilmService(new InMemoryFilmStorage(), new UserService(new InMemoryUserStorage())));
         film = Film.builder()
                 .name("firstName")
                 .description("description for FIRST film")
@@ -49,18 +54,16 @@ public class FilmControllerTests {
 
     @Test
     void correctAddFilm() {
-        controller.createFilm(film);
-        assertEquals(1, film.getId());
+        Film createdFilm = controller.createFilm(film);
+        assertEquals(1, createdFilm.getId());
     }
 
     @Test
     void correctAddSeveralFilms() {
         controller.createFilm(film);
-        controller.createFilm(film);
-        controller.createFilm(film);
-        controller.createFilm(film);
-        controller.createFilm(film);
-        assertEquals(5, controller.getAllFilms().size());
+        Film film2 = film.toBuilder().name("secondName").build();
+        controller.createFilm(film2);
+        assertEquals(2, controller.getAllFilms().size());
     }
 
     @Test
@@ -97,9 +100,9 @@ public class FilmControllerTests {
 
     @Test
     void correctUpdateFilm() {
-        controller.createFilm(film);
+        Film createdFilm = controller.createFilm(film);
         Film update = Film.builder()
-                .id(film.getId())
+                .id(createdFilm.getId())
                 .description("updated description for tests")
                 .name("UPDATING")
                 .releaseDate(LocalDate.of(1900, 12, 24))
@@ -109,7 +112,7 @@ public class FilmControllerTests {
                 .likes(new HashSet<>())
                 .build();
         controller.updateFilm(update);
-        assertEquals(update.getName(), controller.getAllFilms().get(0).getName());
+        assertEquals(update.getName(), controller.findFilmByID(createdFilm.getId()).getName());
     }
 
     @Test
@@ -121,7 +124,7 @@ public class FilmControllerTests {
                 .name("UPDATING")
                 .releaseDate(LocalDate.of(2005, 11, 12))
                 .duration(124)
-                .mpa(MPA.builder().id(1).name("G").build())
+                .mpa(MPA.builder().id(1).build())
                 .build();
         final FilmNotFoundException exception = assertThrows(FilmNotFoundException.class, () -> controller.updateFilm(update));
         assertEquals("Фильм с ID - 50 не найден в базе", exception.getMessage());

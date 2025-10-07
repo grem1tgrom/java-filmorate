@@ -3,34 +3,39 @@ package ru.yandex.practicum.filmorate;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.DirtiesContext;
 import ru.yandex.practicum.filmorate.controllers.UserController;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.service.UserService;
-import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
-import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@SpringBootTest
+@AutoConfigureTestDatabase
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 public class UserControllerTests {
-    static Validator validator;
-    UserController controller;
-    User user;
+
+    private final UserController controller;
+    private static Validator validator;
+    private User user;
 
     @BeforeAll
-    public static void start() {
+    public static void beforeAll() {
         validator = Validation.buildDefaultValidatorFactory().getValidator();
     }
 
     @BeforeEach
     void beforeEach() {
-        UserStorage userStorage = new InMemoryUserStorage();
-        controller = new UserController(new UserService(userStorage));
         user = User.builder()
                 .email("123@123.ru")
                 .login("testLogin")
@@ -41,20 +46,20 @@ public class UserControllerTests {
 
     @Test
     void correctSaveUser() {
-        controller.createUser(user);
-        assertEquals(1, user.getId());
+        User createdUser = controller.createUser(user);
+        assertEquals(1, createdUser.getId());
     }
 
     @Test
     void correctSaveSeveralUsers() {
         controller.createUser(user);
-        controller.createUser(user);
-        controller.createUser(user);
-        controller.createUser(user);
-        controller.createUser(user);
-        controller.createUser(user);
-        controller.createUser(user);
-        assertEquals(7, controller.getAllUsers().size());
+        User user2 = User.builder()
+                .email("newUser@mail.com")
+                .login("newLogin")
+                .name("newName")
+                .birthday(LocalDate.now()).build();
+        controller.createUser(user2);
+        assertEquals(2, controller.getAllUsers().size());
     }
 
     @Test
@@ -76,15 +81,15 @@ public class UserControllerTests {
     @Test
     void nameEqualsLoginWhenNameIsNull() {
         user.setName(null);
-        controller.createUser(user);
-        assertEquals("testLogin", user.getName());
+        User createdUser = controller.createUser(user);
+        assertEquals("testLogin", createdUser.getName());
     }
 
     @Test
     void nameEqualsLoginWhenNameIsBlank() {
         user.setName("         ");
-        controller.createUser(user);
-        assertEquals("testLogin", user.getName());
+        User createdUser = controller.createUser(user);
+        assertEquals("testLogin", createdUser.getName());
     }
 
     @Test
@@ -97,29 +102,29 @@ public class UserControllerTests {
 
     @Test
     void correctUpdateUser() {
-        controller.createUser(user);
+        User createdUser = controller.createUser(user);
         User update = User.builder()
-                .id(user.getId())
+                .id(createdUser.getId())
                 .email("update@update.com")
                 .login("UPDATED")
                 .name("updatedName")
                 .birthday(LocalDate.of(2001, 1, 24))
                 .build();
         controller.updateUser(update);
-        assertEquals(update.getLogin(), controller.getAllUsers().get(controller.getAllUsers().size() - 1).getLogin());
+        assertEquals(update.getLogin(), controller.getUserByID(createdUser.getId()).getLogin());
     }
 
     @Test
     void correctUpdateUserWhenNameIsNull() {
-        controller.createUser(user);
+        User createdUser = controller.createUser(user);
         User update = User.builder()
-                .id(user.getId())
+                .id(createdUser.getId())
                 .email("update@update.com")
                 .login("UPDATED")
                 .name(null)
                 .birthday(LocalDate.of(2001, 1, 24))
                 .build();
         controller.updateUser(update);
-        assertEquals(update.getLogin(), controller.getAllUsers().get(controller.getAllUsers().size() - 1).getName());
+        assertEquals(update.getLogin(), controller.getUserByID(createdUser.getId()).getName());
     }
 }

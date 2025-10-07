@@ -156,7 +156,7 @@ public class FilmDbStorageTests {
     @Order(9)
     public void getExceptionWhenIncorrectIdInAddingLike() {
         final FilmNotFoundException exception = assertThrows(FilmNotFoundException.class, () -> filmStorage.addLike(50, 1));
-        assertEquals("Фильм с ID - 50 не найден в базе", exception.getMessage());
+        assertEquals("Фильм с ID 50 не найден в базе", exception.getMessage());
     }
 
     @Test
@@ -186,7 +186,7 @@ public class FilmDbStorageTests {
     @Test
     @Order(12)
     public void getCorrectTopFilmsAfterLikes() {
-        User user1 = User.builder().email("1@1.ru").login("u1").birthday(LocalDate.now()).build();
+        User user1 = User.builder().email("1@1.ru").login("u1").name("n1").birthday(LocalDate.now()).build();
         userStorage.addUser(user1);
         Film film1 = Film.builder().name("f1").description("d1").releaseDate(LocalDate.now()).duration(100).mpa(MPA.builder().id(1).build()).build();
         filmStorage.addFilm(film1);
@@ -202,7 +202,7 @@ public class FilmDbStorageTests {
     @Test
     @Order(13)
     public void correctDeletingLike() {
-        User user = User.builder().email("u@u.com").login("u").birthday(LocalDate.now()).build();
+        User user = User.builder().email("u@u.com").login("u").name("n").birthday(LocalDate.now()).build();
         userStorage.addUser(user);
         Film film = Film.builder().name("f").description("d").releaseDate(LocalDate.now()).duration(100).mpa(MPA.builder().id(1).build()).build();
         filmStorage.addFilm(film);
@@ -214,7 +214,7 @@ public class FilmDbStorageTests {
     @Test
     @Order(14)
     public void getFalseWhenTryDeleteAlreadyDeletedLike() {
-        User user = User.builder().email("u@u.com").login("u").birthday(LocalDate.now()).build();
+        User user = User.builder().email("u@u.com").login("u").name("n").birthday(LocalDate.now()).build();
         userStorage.addUser(user);
         Film film = Film.builder().name("f").description("d").releaseDate(LocalDate.now()).duration(100).mpa(MPA.builder().id(1).build()).build();
         filmStorage.addFilm(film);
@@ -226,13 +226,13 @@ public class FilmDbStorageTests {
     @Order(15)
     public void getExceptionWhenIncorrectFilmIdInDeletingLike() {
         final FilmNotFoundException exception = assertThrows(FilmNotFoundException.class, () -> filmStorage.removeLike(147, 1));
-        assertEquals("Фильм с ID - 147 не найден в базе", exception.getMessage());
+        assertEquals("Фильм с ID 147 не найден в базе", exception.getMessage());
     }
 
     @Test
     @Order(16)
     public void getCorrectTopFilmsAfterRemovingLikes() {
-        User user1 = User.builder().email("1@1.ru").login("u1").birthday(LocalDate.now()).build();
+        User user1 = User.builder().email("1@1.ru").login("u1").name("n1").birthday(LocalDate.now()).build();
         userStorage.addUser(user1);
         Film film1 = Film.builder().name("f1").description("d1").releaseDate(LocalDate.now()).duration(100).mpa(MPA.builder().id(1).build()).build();
         filmStorage.addFilm(film1);
