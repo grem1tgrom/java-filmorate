@@ -18,7 +18,6 @@ import ru.yandex.practicum.filmorate.model.MPA;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -48,7 +47,6 @@ public class FilmControllerTests {
                 .duration(50)
                 .mpa(MPA.builder().id(1).name("G").build())
                 .genres(new ArrayList<>())
-                .likes(new HashSet<>())
                 .build();
     }
 
@@ -109,7 +107,6 @@ public class FilmControllerTests {
                 .duration(74)
                 .mpa(MPA.builder().id(1).name("G").build())
                 .genres(new ArrayList<>())
-                .likes(new HashSet<>())
                 .build();
         controller.updateFilm(update);
         assertEquals(update.getName(), controller.findFilmByID(createdFilm.getId()).getName());
