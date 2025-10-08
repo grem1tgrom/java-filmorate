@@ -7,6 +7,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
 import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
+import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.MPA;
 import ru.yandex.practicum.filmorate.model.User;
@@ -225,6 +226,8 @@ public class FilmDbStorageTests {
     @Test
     @Order(15)
     public void getExceptionWhenIncorrectFilmIdInDeletingLike() {
+        User user = User.builder().email("u@u.com").login("u").name("n").birthday(LocalDate.now()).build();
+        userStorage.addUser(user);
         final FilmNotFoundException exception = assertThrows(FilmNotFoundException.class, () -> filmStorage.removeLike(147, 1));
         assertEquals("Фильм с ID 147 не найден в базе", exception.getMessage());
     }
@@ -255,5 +258,23 @@ public class FilmDbStorageTests {
         Film film = Film.builder().name("f").description("d").releaseDate(LocalDate.now()).duration(100).mpa(MPA.builder().id(1).build()).build();
         filmStorage.addFilm(film);
         assertTrue(filmStorage.idIsPresent(1));
+    }
+
+    @Test
+    @Order(19)
+    public void getExceptionWhenIncorrectUserIdInAddingLike() {
+        Film film = Film.builder().name("f").description("d").releaseDate(LocalDate.now()).duration(100).mpa(MPA.builder().id(1).build()).build();
+        filmStorage.addFilm(film);
+        final UserNotFoundException exception = assertThrows(UserNotFoundException.class, () -> filmStorage.addLike(1, 50));
+        assertEquals("Пользователь с ID - 50 не найден в базе", exception.getMessage());
+    }
+
+    @Test
+    @Order(20)
+    public void getExceptionWhenIncorrectUserIdInDeletingLike() {
+        Film film = Film.builder().name("f").description("d").releaseDate(LocalDate.now()).duration(100).mpa(MPA.builder().id(1).build()).build();
+        filmStorage.addFilm(film);
+        final UserNotFoundException exception = assertThrows(UserNotFoundException.class, () -> filmStorage.removeLike(1, 147));
+        assertEquals("Пользователь с ID - 147 не найден в базе", exception.getMessage());
     }
 }
