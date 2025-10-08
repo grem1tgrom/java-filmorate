@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 import ru.yandex.practicum.filmorate.validators.UserValidator;
@@ -38,25 +39,20 @@ public class UserService {
         return userStorage.findUserByID(id);
     }
 
-    public String addFriendship(int userID, int friendID) {
-        boolean success = userStorage.addFriendship(userID, friendID);
-        if (success) {
-            return String.format("Пользователь с ID %d успешно добавлен в друзья к пользователю с ID %d", friendID, userID);
-        } else {
-            return String.format("Пользователь с ID %d уже дружит с пользователем, ID %d", friendID, userID);
-        }
+    public void addFriendship(int userID, int friendID) {
+        userStorage.addFriendship(userID, friendID);
+        log.info("Пользователь с ID {} добавил в друзья пользователя с ID {}", userID, friendID);
     }
 
-    public String removeFriendship(int userID, int friendID) {
-        boolean success = userStorage.removeFriendship(userID, friendID);
-        if (success) {
-            return String.format("Пользователь с ID %d успешно удален из друзей у пользователя с ID %d", friendID, userID);
-        } else {
-            return String.format("Пользователь с ID %d уже отсутствует в друзьях у пользователя, ID %d", friendID, userID);
-        }
+    public void removeFriendship(int userID, int friendID) {
+        userStorage.removeFriendship(userID, friendID);
+        log.info("Пользователь с ID {} удалил из друзей пользователя с ID {}", userID, friendID);
     }
 
     public List<User> getFriendsOfUser(int userID) {
+        if (!userStorage.idIsPresent(userID)) {
+            throw new UserNotFoundException("Пользователь с ID " + userID + " не найден в базе");
+        }
         log.info("Запрошен список друзей у пользователя с ID {}", userID);
         return userStorage.getFriendsOfUser(userID);
     }

@@ -8,7 +8,10 @@ import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.genre.GenreStorage;
+import ru.yandex.practicum.filmorate.storage.mpa.MpaStorage;
 import ru.yandex.practicum.filmorate.validators.FilmValidator;
 
 import java.util.List;
@@ -18,11 +21,18 @@ import java.util.List;
 public class FilmService {
     private final FilmStorage filmStorage;
     private final UserService userService;
+    private final MpaStorage mpaStorage;
+    private final GenreStorage genreStorage;
 
     @Autowired
-    public FilmService(@Qualifier("FilmDbStorage") FilmStorage filmStorage, UserService userService) {
+    public FilmService(@Qualifier("FilmDbStorage") FilmStorage filmStorage,
+                       UserService userService,
+                       MpaStorage mpaStorage,
+                       GenreStorage genreStorage) {
         this.filmStorage = filmStorage;
         this.userService = userService;
+        this.mpaStorage = mpaStorage;
+        this.genreStorage = genreStorage;
     }
 
     public List<Film> getAllFilms() {
@@ -31,6 +41,7 @@ public class FilmService {
 
     public Film addFilm(Film film) {
         FilmValidator.validate(film);
+        validateMpaAndGenres(film);
         return filmStorage.addFilm(film);
     }
 
@@ -39,6 +50,7 @@ public class FilmService {
             throw new FilmNotFoundException("Фильм с ID - " + film.getId() + " не найден в базе");
         }
         FilmValidator.validate(film);
+        validateMpaAndGenres(film);
         return filmStorage.updateFilm(film);
     }
 
@@ -75,5 +87,16 @@ public class FilmService {
         }
         log.info("Запрошен топ фильмов размерностью {}", count);
         return filmStorage.findTopLikedFilms(count);
+    }
+
+    private void validateMpaAndGenres(Film film) {
+        if (film.getMpa() != null) {
+            mpaStorage.getMpaByID(film.getMpa().getId());
+        }
+        if (film.getGenres() != null) {
+            for (Genre genre : film.getGenres()) {
+                genreStorage.getGenreByID(genre.getId());
+            }
+        }
     }
 }
