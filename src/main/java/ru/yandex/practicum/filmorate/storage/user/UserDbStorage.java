@@ -9,14 +9,13 @@ import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.validators.UserValidator;
 
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Component("UserDbStorage")
 @Slf4j
@@ -36,6 +35,10 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public User addUser(User user) {
+        UserValidator.validate(user);
+        if (user.getName() == null || user.getName().isBlank()) {
+            user.setName(user.getLogin());
+        }
         String sqlQuery = "INSERT INTO users(email, login, name, birthday) VALUES(?, ?, ?, ?)";
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
@@ -43,7 +46,11 @@ public class UserDbStorage implements UserStorage {
             stmt.setString(1, user.getEmail());
             stmt.setString(2, user.getLogin());
             stmt.setString(3, user.getName());
-            stmt.setDate(4, Date.valueOf(user.getBirthday()));
+            if (user.getBirthday() != null) {
+                stmt.setDate(4, Date.valueOf(user.getBirthday()));
+            } else {
+                stmt.setNull(4, java.sql.Types.DATE);
+            }
             return stmt;
         }, keyHolder);
         user.setId(keyHolder.getKey().intValue());
@@ -55,6 +62,10 @@ public class UserDbStorage implements UserStorage {
         if (!idIsPresent(user.getId())) {
             throw new UserNotFoundException("Пользователь с ID " + user.getId() + " не найден в базе");
         }
+        UserValidator.validate(user);
+        if (user.getName() == null || user.getName().isBlank()) {
+            user.setName(user.getLogin());
+        }
         String sqlQuery = "UPDATE users SET login = ?, email = ?, name = ?, birthday =? WHERE id = ?";
         jdbcTemplate.update(sqlQuery, user.getLogin(), user.getEmail(), user.getName(), user.getBirthday(), user.getId());
         return user;
@@ -64,14 +75,16 @@ public class UserDbStorage implements UserStorage {
     public User findUserByID(Integer id) {
         SqlRowSet userRow = jdbcTemplate.queryForRowSet("SELECT * FROM users WHERE id = ?", id);
         if (userRow.next()) {
-            return User.builder()
+            User.UserBuilder userBuilder = User.builder()
                     .id(userRow.getInt("id"))
                     .login(userRow.getString("login"))
                     .email(userRow.getString("email"))
-                    .name(userRow.getString("name"))
-                    .birthday(userRow.getDate("birthday").toLocalDate())
-                    .friends(getFriendsByUserId(id))
-                    .build();
+                    .name(userRow.getString("name"));
+            Date birthday = userRow.getDate("birthday");
+            if (birthday != null) {
+                userBuilder.birthday(birthday.toLocalDate());
+            }
+            return userBuilder.build();
         } else {
             throw new UserNotFoundException("Пользователь с ID " + id + " не найден в базе");
         }
@@ -129,20 +142,15 @@ public class UserDbStorage implements UserStorage {
     }
 
     private User sqlRowToUser(ResultSet resultSet, int rowNumber) throws SQLException {
-        int userId = resultSet.getInt("id");
-        return User.builder()
-                .id(userId)
+        User.UserBuilder userBuilder = User.builder()
+                .id(resultSet.getInt("id"))
                 .login(resultSet.getString("login"))
                 .email(resultSet.getString("email"))
-                .name(resultSet.getString("name"))
-                .birthday(resultSet.getDate("birthday").toLocalDate())
-                .friends(getFriendsByUserId(userId))
-                .build();
-    }
-
-    private Set<Integer> getFriendsByUserId(Integer id) {
-        String sqlQuery = "SELECT friend_id FROM friendship WHERE user_id = ?";
-        List<Integer> friends = jdbcTemplate.queryForList(sqlQuery, Integer.class, id);
-        return new HashSet<>(friends);
+                .name(resultSet.getString("name"));
+        Date birthday = resultSet.getDate("birthday");
+        if (birthday != null) {
+            userBuilder.birthday(birthday.toLocalDate());
+        }
+        return userBuilder.build();
     }
 }

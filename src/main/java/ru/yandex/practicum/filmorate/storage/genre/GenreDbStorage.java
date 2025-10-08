@@ -22,7 +22,7 @@ public class GenreDbStorage implements GenreStorage {
     @Override
     public List<Genre> getAllGenres() {
         String sqlQuery = "SELECT * FROM genres";
-        List<Genre> result = jdbcTemplate.query(sqlQuery, this::makeGenre);
+        List<Genre> result = jdbcTemplate.query(sqlQuery, GenreDbStorage::makeGenre);
         log.info("Сформирован список всех жанров в базе размерностью {}", result.size());
         return result;
     }
@@ -30,14 +30,14 @@ public class GenreDbStorage implements GenreStorage {
     @Override
     public Genre getGenreByID(int id) {
         final String sqlQuery = "SELECT * FROM GENRES WHERE id = ?";
-        final List<Genre> genres = jdbcTemplate.query(sqlQuery, this::makeGenre, id);
+        final List<Genre> genres = jdbcTemplate.query(sqlQuery, GenreDbStorage::makeGenre, id);
         if (genres.size() != 1) {
             throw new GenreNotFoundException("Жанр с ID " + id + " не найден в базе");
         }
         return genres.get(0);
     }
 
-    private Genre makeGenre(ResultSet rs, int rowNum) throws SQLException {
+    static Genre makeGenre(ResultSet rs, int rowNum) throws SQLException {
         return Genre.builder()
                 .id(rs.getInt("id"))
                 .name(rs.getString("name"))

@@ -38,22 +38,12 @@ public class UserService {
         return userStorage.findUserByID(id);
     }
 
-    public String addFriendship(int userID, int friendID) {
-        boolean success = userStorage.addFriendship(userID, friendID);
-        if (success) {
-            return String.format("Пользователь с ID %d успешно добавлен в друзья к пользователю с ID %d", friendID, userID);
-        } else {
-            return String.format("Пользователь с ID %d уже дружит с пользователем, ID %d", friendID, userID);
-        }
+    public void addFriendship(int userID, int friendID) {
+        userStorage.addFriendship(userID, friendID);
     }
 
-    public String removeFriendship(int userID, int friendID) {
-        boolean success = userStorage.removeFriendship(userID, friendID);
-        if (success) {
-            return String.format("Пользователь с ID %d успешно удален из друзей у пользователя с ID %d", friendID, userID);
-        } else {
-            return String.format("Пользователь с ID %d уже отсутствует в друзьях у пользователя, ID %d", friendID, userID);
-        }
+    public void removeFriendship(int userID, int friendID) {
+        userStorage.removeFriendship(userID, friendID);
     }
 
     public List<User> getFriendsOfUser(int userID) {

@@ -43,31 +43,30 @@ public class FilmService {
     }
 
     public Film findFilmByID(Integer id) {
+        if (!filmStorage.idIsPresent(id)) {
+            throw new FilmNotFoundException("Фильм с ID - " + id + " не найден в базе");
+        }
         return filmStorage.getFilmByID(id);
     }
 
-    public String addLike(Integer filmID, Integer userID) {
+    public void addLike(Integer filmID, Integer userID) {
+        if (!filmStorage.idIsPresent(filmID)) {
+            throw new FilmNotFoundException("Фильм с ID " + filmID + " не найден в базе");
+        }
         if (!userService.checkUserIdInStorage(userID)) {
             throw new UserNotFoundException("Пользователь с ID - " + userID + " не найден в базе");
         }
-        boolean success = filmStorage.addLike(filmID, userID);
-        if (success) {
-            return String.format("Фильм с ID %d получил лайк от пользователя с ID %d", filmID, userID);
-        } else {
-            return String.format("Пользователь с ID %d уже поставил лайк фильму с ID %d", userID, filmID);
-        }
+        filmStorage.addLike(filmID, userID);
     }
 
-    public String removeLike(Integer filmID, Integer userID) {
+    public void removeLike(Integer filmID, Integer userID) {
+        if (!filmStorage.idIsPresent(filmID)) {
+            throw new FilmNotFoundException("Фильм с ID " + filmID + " не найден в базе");
+        }
         if (!userService.checkUserIdInStorage(userID)) {
             throw new UserNotFoundException("Пользователь с ID - " + userID + " не найден в базе");
         }
-        boolean success = filmStorage.removeLike(filmID, userID);
-        if (success) {
-            return String.format("Лайк от пользователя с ID %d удален у фильма с ID %d", userID, filmID);
-        } else {
-            return String.format("Лайк от пользователя с ID %d отсутствует у фильма с ID %d", userID, filmID);
-        }
+        filmStorage.removeLike(filmID, userID);
     }
 
     public List<Film> findTopLikedFilms(Integer count) {

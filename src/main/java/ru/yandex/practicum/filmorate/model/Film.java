@@ -1,22 +1,19 @@
 package ru.yandex.practicum.filmorate.model;
 
-import jakarta.validation.constraints.*;
-import lombok.AllArgsConstructor;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import ru.yandex.practicum.filmorate.validators.LocalDateAfter;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Data
 @Builder(toBuilder = true)
-@AllArgsConstructor
-@NoArgsConstructor
 public class Film {
     private int id;
 
@@ -37,7 +34,4 @@ public class Film {
 
     @Builder.Default
     private List<Genre> genres = new ArrayList<>();
-
-    @Builder.Default
-    private Set<Integer> likes = new HashSet<>();
 }
