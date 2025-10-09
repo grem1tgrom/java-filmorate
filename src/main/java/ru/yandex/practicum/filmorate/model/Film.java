@@ -1,24 +1,37 @@
 package ru.yandex.practicum.filmorate.model;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+import lombok.Builder;
 import lombok.Data;
+import ru.yandex.practicum.filmorate.validators.LocalDateAfter;
+
 import java.time.LocalDate;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
+@Builder(toBuilder = true)
 public class Film {
     private int id;
-    @NotBlank(message = "Название не может быть пустым.")
+
+    @NotBlank(message = "Название фильма не может быть пустым")
     private String name;
-    @Size(min = 1, max = 200, message = "Описание не должно быть пустым и не должно превышать 200 символов.")
+
+    @Size(max = 200, message = "Описание фильма должно быть меньше 200 символов")
     private String description;
-    @NotNull(message = "Дата релиза не может быть пустой.")
+
+    @LocalDateAfter(value = "28.12.1895", message = "Дата выпуска фильма должна быть старше 28.12.1895")
     private LocalDate releaseDate;
-    @Positive(message = "Продолжительность фильма должна быть положительной.")
+
+    @Min(value = 1, message = "Длительность фильма должна быть больше 0")
     private int duration;
-    private final Set<Integer> likes = new HashSet<>();
+
+    @NotNull(message = "Рейтинг фильма не может быть пустым")
+    private MPA mpa;
+
+    @Builder.Default
+    private List<Genre> genres = new ArrayList<>();
 }
